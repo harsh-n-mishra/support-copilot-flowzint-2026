@@ -49,7 +49,11 @@ def build_or_refresh_index() -> int:
         persist_directory=settings.vector_db_dir,
         embedding_function=embeddings,
     )
-    vectorstore.delete_collection()
+    try:
+        vectorstore.delete_collection()
+    except Exception:
+        # collection may not exist on first run
+        pass
 
     # Recreate fresh collection
     vectorstore = Chroma.from_documents(

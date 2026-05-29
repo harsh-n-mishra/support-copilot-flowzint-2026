@@ -1,41 +1,31 @@
 # AI Support Chatbot / FAQ Assistant (RAG)
 
-A complete end-to-end project to build a **retrieval-based support chatbot** using **Python + OpenAI + LangChain + Chroma + FastAPI**.
+A complete end-to-end support chatbot using **Python + OpenAI + LangChain + Chroma + FastAPI + Streamlit**.
 
-It indexes your support docs (FAQs, markdown, text files) and answers user queries grounded in those docs.
-
----
-
-## 1) Project architecture
-
-1. **Ingestion**
-   - Read docs from `data/docs/`
-   - Split into chunks
-   - Create embeddings with OpenAI
-   - Store vectors in local Chroma DB
-2. **Retrieval + Generation**
-   - Receive user question via API
-   - Retrieve top-k relevant chunks
-   - Ask LLM to answer based only on retrieved context
-3. **Serving**
-   - Expose REST endpoints through FastAPI
+## What was added
+- Chat API with RAG retrieval.
+- Source citations in response body (`[1]`, `[2]`) plus structured source list.
+- Conversation memory by `session_id`.
+- Automatic support ticket handoff when confidence is low.
+- Streamlit chat UI.
 
 ---
 
-## 2) Folder structure
+## Folder structure
 
 ```text
 .
 ├── app
 │   ├── __init__.py
-│   ├── config.py         # Env/config management
-│   ├── ingest.py         # Build/update vector index
-│   ├── main.py           # FastAPI app and endpoints
-│   ├── rag.py            # Retrieval + answer pipeline
-│   └── schemas.py        # Request/response models
+│   ├── config.py
+│   ├── ingest.py
+│   ├── main.py
+│   ├── rag.py
+│   └── schemas.py
 ├── data
 │   └── docs
-│       └── faq.md        # Example support knowledge base
+│       └── faq.md
+├── streamlit_app.py
 ├── .env.example
 ├── requirements.txt
 └── README.md
@@ -43,64 +33,64 @@ It indexes your support docs (FAQs, markdown, text files) and answers user queri
 
 ---
 
-## 3) Setup (end-to-end)
-
-### Prerequisites
-- Python 3.10+
-- OpenAI API key
-
-### Install
+## Setup
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install -r requirements.txt
-```
-
-### Configure env
-
-```bash
 cp .env.example .env
-# edit .env and set OPENAI_API_KEY
 ```
 
-### Add your docs
+Set your `OPENAI_API_KEY` in `.env`.
 
-Put knowledge files in `data/docs/` (`.md`, `.txt`).
+---
 
-### Build vector index
+## Ingest docs
 
 ```bash
 python -m app.ingest
 ```
 
-### Run API
+---
+
+## Run backend API
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-Open API docs at: `http://127.0.0.1:8000/docs`
+API docs: `http://127.0.0.1:8000/docs`
 
 ---
 
-## 4) Example API usage
-
-### Health
+## Run Streamlit UI
 
 ```bash
-curl http://127.0.0.1:8000/health
+streamlit run streamlit_app.py
 ```
 
-### Ask a question
+UI opens in browser (default `http://localhost:8501`).
+
+---
+
+## API examples
+
+### Chat with citations + memory
 
 ```bash
 curl -X POST http://127.0.0.1:8000/chat \
   -H 'Content-Type: application/json' \
-  -d '{"question":"How do I reset my password?"}'
+  -d '{"session_id":"user-123","question":"How do I reset my password?"}'
 ```
 
-### Re-index docs (after updates)
+### Clear memory for a session
+
+```bash
+curl -X DELETE http://127.0.0.1:8000/memory/user-123
+```
+
+### Reindex docs
 
 ```bash
 curl -X POST http://127.0.0.1:8000/reindex
@@ -108,19 +98,6 @@ curl -X POST http://127.0.0.1:8000/reindex
 
 ---
 
-## 5) How this reduces manual support effort
-
-- Centralizes scattered documentation.
-- Gives instant, consistent answers.
-- Grounds responses in source content (retrieval-based).
-- Can be extended with ticketing handoff when context is missing.
-
----
-
-## 6) Production improvements
-
-- Add auth + rate limiting.
-- Add confidence score / citation links in response.
-- Add conversation memory (bounded + safe).
-- Periodic background indexing job.
-- Add observability (logs/traces) and prompt/version tracking.
+## Notes
+- Handoff creates a ticket ID and returns support contact.
+- Memory is in-process (ephemeral). For production, use Redis/Postgres.
