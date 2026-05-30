@@ -1,7 +1,7 @@
-# AI Support Chatbot / FAQ Assistant
+# AI Support Copilot
 
 Production-style monorepo with:
-- **FastAPI backend** (RAG + memory + ticket handoff)
+- **FastAPI backend** (RAG + memory + ticket handoff + support workflow metadata)
 - **React + TypeScript frontend** (Vite + Tailwind)
 - **Gemini API** for embeddings + chat generation
 
@@ -10,8 +10,11 @@ Production-style monorepo with:
 - Inline citations in answers (`[1]`, `[2]`)
 - Source list rendering
 - Conversation memory by `session_id`
+- Rolling conversation summary per session
+- Intent classification for each user query
+- Escalation target recommendation
+- Handoff ticket generation + structured ticket draft
 - Memory clear endpoint (`DELETE /memory/{session_id}`)
-- Ticket handoff fallback for low-confidence answers
 
 ## Repository Structure
 
@@ -74,6 +77,13 @@ npm run dev
 ```
 
 Default frontend URL: `http://localhost:5173`
+
+## Chat Response Additions
+
+`POST /chat` now also returns:
+- `intent`
+- `escalation_target`
+- `ticket_draft` (when handoff is triggered)
 
 ## API Example
 

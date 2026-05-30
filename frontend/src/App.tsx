@@ -32,8 +32,11 @@ export default function App() {
         id: crypto.randomUUID(),
         role: "assistant",
         content: response.answer,
+        intent: response.intent,
+        escalationTarget: response.escalation_target,
         sources: response.sources,
         handoff: response.handoff,
+        ticketDraft: response.ticket_draft,
       };
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err) {
@@ -53,18 +56,30 @@ export default function App() {
     }
   };
 
+  const onSessionIdInputChange = (nextValue: string) => {
+    setSessionId(nextValue);
+    setMessages([]);
+    setError(null);
+  };
+
+  const onGenerateSessionId = () => {
+    setSessionId(generateSessionId());
+    setMessages([]);
+    setError(null);
+  };
+
   return (
     <main className="mx-auto flex h-screen max-w-4xl flex-col bg-slate-900 text-slate-100">
       <header className="flex flex-wrap items-center gap-3 border-b border-slate-700 p-4">
-        <h1 className="text-lg font-semibold">AI Support Chatbot</h1>
+        <h1 className="text-lg font-semibold">AI Support Copilot</h1>
         <input
           value={sessionId}
-          onChange={(e) => setSessionId(e.target.value)}
+          onChange={(e) => onSessionIdInputChange(e.target.value)}
           className="min-w-[220px] flex-1 rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-sm"
           placeholder="Session ID"
         />
         <button
-          onClick={() => setSessionId(generateSessionId())}
+          onClick={onGenerateSessionId}
           className="rounded-md border border-slate-600 px-3 py-2 text-xs hover:bg-slate-800"
         >
           New Session ID

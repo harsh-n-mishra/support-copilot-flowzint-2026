@@ -4,7 +4,7 @@ from app.ingest import build_or_refresh_index
 from app.rag import ask_support_question, clear_memory
 from app.schemas import ChatRequest, ChatResponse, SourceChunk
 
-app = FastAPI(title="AI Support Chatbot API", version="2.0.0")
+app = FastAPI(title="AI Support Chatbot API", version="2.1.0")
 
 
 @app.get("/health")
@@ -15,12 +15,19 @@ def health_check() -> dict[str, str]:
 @app.post("/chat", response_model=ChatResponse)
 def chat(payload: ChatRequest) -> ChatResponse:
     try:
-        answer, source_dicts, handoff = ask_support_question(payload.question, payload.session_id)
+        result = ask_support_question(payload.question, payload.session_id)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-    sources = [SourceChunk(**item) for item in source_dicts]
-    return ChatResponse(answer=answer, sources=sources, handoff=handoff)
+    sources = [SourceChunk(**item) for item in result.sources]
+    return ChatResponse(
+        answer=result.answer,
+        sources=sources,
+        intent=result.intent,
+        escalation_target=result.escalation_target,
+        handoff=result.handoff,
+        ticket_draft=result.ticket_draft,
+    )
 
 
 @app.post("/reindex")

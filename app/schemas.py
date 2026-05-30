@@ -19,7 +19,18 @@ class HandoffTicket(BaseModel):
     contact: str
 
 
+class TicketDraft(BaseModel):
+    title: str
+    summary: str
+    intent: str
+    escalation_target: str
+    conversation_summary: str
+
+
 class ChatResponse(BaseModel):
     answer: str
     sources: list[SourceChunk]
+    intent: str
+    escalation_target: str
     handoff: HandoffTicket | None = None
+    ticket_draft: TicketDraft | None = None
