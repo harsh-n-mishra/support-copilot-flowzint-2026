@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 
 from app.config import settings
 from app.schemas import HandoffTicket
@@ -23,12 +23,14 @@ PROMPT = ChatPromptTemplate.from_messages(
     ]
 )
 
-# ephemeral in-memory chat history: session_id -> deque of turns
 _MEMORY: dict[str, deque[tuple[str, str]]] = defaultdict(lambda: deque(maxlen=settings.memory_turns))
 
 
 def _get_vectorstore() -> Chroma:
-    embeddings = OpenAIEmbeddings(model=settings.embedding_model, api_key=settings.openai_api_key)
+    embeddings = GoogleGenerativeAIEmbeddings(
+        model=settings.gemini_embedding_model,
+        google_api_key=settings.gemini_api_key,
+    )
     return Chroma(
         persist_directory=settings.vector_db_dir,
         embedding_function=embeddings,
@@ -39,7 +41,6 @@ def _build_history_text(session_id: str) -> str:
     turns = list(_MEMORY.get(session_id, []))
     if not turns:
         return "No previous conversation."
-
     return "\n".join(f"User: {q}\nAssistant: {a}" for q, a in turns)
 
 
@@ -65,6 +66,11 @@ def _format_sources(raw_results: list[tuple]) -> list[dict]:
     return sources
 
 
+def _needs_handoff(answer: str, top_score: float) -> bool:
+    unsure = ("i don't know" in answer.lower()) or ("i do not know" in answer.lower())
+    return top_score < settings.min_relevance_score or unsure
+
+
 def ask_support_question(question: str, session_id: str) -> tuple[str, list[dict], HandoffTicket | None]:
     vectorstore = _get_vectorstore()
     results = vectorstore.similarity_search_with_relevance_scores(question, k=settings.top_k)
@@ -83,7 +89,12 @@ def ask_support_question(question: str, session_id: str) -> tuple[str, list[dict
     context = "\n\n".join(doc.page_content for doc in docs)
     history = _build_history_text(session_id)
 
-    llm = ChatOpenAI(model=settings.openai_model, api_key=settings.openai_api_key, temperature=0)
+    llm = ChatGoogleGenerativeAI(
+        model=settings.gemini_model,
+        google_api_key=settings.gemini_api_key,
+        temperature=0,
+    )
+
     chain = PROMPT | llm
     response = chain.invoke(
         {
@@ -95,10 +106,10 @@ def ask_support_question(question: str, session_id: str) -> tuple[str, list[dict
     )
 
     sources = _format_sources(results)
-    answer = response.content
+    answer = str(response.content)
 
     handoff = None
-    if top_score < settings.min_relevance_score or "I don't know" in answer or "I do not know" in answer:
+    if _needs_handoff(answer, top_score):
         handoff = _create_handoff(
             "Low retrieval confidence or unknown answer. Requires human support follow-up."
         )

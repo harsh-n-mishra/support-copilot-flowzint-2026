@@ -5,7 +5,7 @@ from pathlib import Path
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import TextLoader, UnstructuredMarkdownLoader
-from langchain_openai import OpenAIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 from app.config import settings
 
@@ -43,19 +43,21 @@ def build_or_refresh_index() -> int:
     splitter = RecursiveCharacterTextSplitter(chunk_size=900, chunk_overlap=150)
     chunks = splitter.split_documents(documents)
 
-    embeddings = OpenAIEmbeddings(model=settings.embedding_model, api_key=settings.openai_api_key)
+    embeddings = GoogleGenerativeAIEmbeddings(
+        model=settings.gemini_embedding_model,
+        google_api_key=settings.gemini_api_key,
+    )
 
     vectorstore = Chroma(
         persist_directory=settings.vector_db_dir,
         embedding_function=embeddings,
     )
+
     try:
         vectorstore.delete_collection()
     except Exception:
-        # collection may not exist on first run
         pass
 
-    # Recreate fresh collection
     vectorstore = Chroma.from_documents(
         documents=chunks,
         embedding=embeddings,

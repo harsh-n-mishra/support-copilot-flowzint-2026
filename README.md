@@ -1,39 +1,41 @@
-# AI Support Chatbot / FAQ Assistant (RAG)
+# AI Support Chatbot / FAQ Assistant
 
-A complete end-to-end support chatbot using **Python + OpenAI + LangChain + Chroma + FastAPI + Streamlit**.
+Production-style monorepo with:
+- **FastAPI backend** (RAG + memory + ticket handoff)
+- **React + TypeScript frontend** (Vite + Tailwind)
+- **Gemini API** for embeddings + chat generation
 
-## What was added
-- Chat API with RAG retrieval.
-- Source citations in response body (`[1]`, `[2]`) plus structured source list.
-- Conversation memory by `session_id`.
-- Automatic support ticket handoff when confidence is low.
-- Streamlit chat UI.
+## Features
+- RAG over Chroma vectorstore
+- Inline citations in answers (`[1]`, `[2]`)
+- Source list rendering
+- Conversation memory by `session_id`
+- Memory clear endpoint (`DELETE /memory/{session_id}`)
+- Ticket handoff fallback for low-confidence answers
 
----
-
-## Folder structure
+## Repository Structure
 
 ```text
 .
-├── app
-│   ├── __init__.py
+├── app/
 │   ├── config.py
 │   ├── ingest.py
 │   ├── main.py
 │   ├── rag.py
 │   └── schemas.py
-├── data
-│   └── docs
-│       └── faq.md
-├── streamlit_app.py
+├── data/docs/
+│   └── faq.md
+├── frontend/
+│   ├── src/components/
+│   ├── src/lib/api.ts
+│   ├── src/types/chat.ts
+│   └── ...
 ├── .env.example
 ├── requirements.txt
 └── README.md
 ```
 
----
-
-## Setup
+## Backend Setup
 
 ```bash
 python -m venv .venv
@@ -42,62 +44,41 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Set your `OPENAI_API_KEY` in `.env`.
+Set `GEMINI_API_KEY` in `.env`.
 
----
-
-## Ingest docs
+### Ingest docs
 
 ```bash
 python -m app.ingest
 ```
 
----
-
-## Run backend API
+### Run backend
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-API docs: `http://127.0.0.1:8000/docs`
+Backend endpoints preserved:
+- `GET /health`
+- `POST /chat`
+- `POST /reindex`
+- `DELETE /memory/{session_id}`
 
----
-
-## Run Streamlit UI
+## Frontend Setup
 
 ```bash
-streamlit run streamlit_app.py
+cd frontend
+cp .env.example .env
+npm install
+npm run dev
 ```
 
-UI opens in browser (default `http://localhost:8501`).
+Default frontend URL: `http://localhost:5173`
 
----
-
-## API examples
-
-### Chat with citations + memory
+## API Example
 
 ```bash
 curl -X POST http://127.0.0.1:8000/chat \
   -H 'Content-Type: application/json' \
   -d '{"session_id":"user-123","question":"How do I reset my password?"}'
 ```
-
-### Clear memory for a session
-
-```bash
-curl -X DELETE http://127.0.0.1:8000/memory/user-123
-```
-
-### Reindex docs
-
-```bash
-curl -X POST http://127.0.0.1:8000/reindex
-```
-
----
-
-## Notes
-- Handoff creates a ticket ID and returns support contact.
-- Memory is in-process (ephemeral). For production, use Redis/Postgres.
