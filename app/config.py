@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     top_k: int = 4
     memory_turns: int = 6
     min_relevance_score: float = 0.2
+    enable_debug_inspector: bool = True
     support_email: str = "support@example.com"
     system_prompt: str = (
         "You are a support assistant. Answer only using retrieved context. "

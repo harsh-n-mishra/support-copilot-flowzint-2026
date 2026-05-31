@@ -13,6 +13,19 @@ class SourceChunk(BaseModel):
     score: float
 
 
+class DebugChunk(BaseModel):
+    source: str
+    score: float
+    snippet: str
+
+
+class DebugInfo(BaseModel):
+    retrieved_chunks: list[DebugChunk]
+    top_score: float
+    handoff_reason: str | None = None
+    prompt_context_preview: str
+
+
 class HandoffTicket(BaseModel):
     ticket_id: str
     reason: str
@@ -32,6 +45,7 @@ class ChatResponse(BaseModel):
     sources: list[SourceChunk]
     intent: str
     escalation_target: str
+    debug: DebugInfo
     handoff: HandoffTicket | None = None
     ticket_draft: TicketDraft | None = None
 

@@ -10,6 +10,7 @@ Production-style monorepo with:
 - RAG over Chroma vectorstore
 - Inline citations in answers (`[1]`, `[2]`)
 - Source list rendering
+- Debug inspector for retrieval transparency (development/demo)
 - Conversation memory by `session_id`
 - Rolling conversation summary per session
 - Intent classification for each user query
@@ -94,3 +95,10 @@ Every chat interaction is recorded in SQLite (`analytics.db`) with:
 - escalation target
 
 `GET /analytics` returns aggregate metrics and failed-query rows for dashboard display.
+
+## Debug Inspector Safety
+
+`ENABLE_DEBUG_INSPECTOR=true` enables retrieval debug data in chat responses for development/demo visibility.
+
+Debug payload includes retrieved chunk snippets and prompt context previews, which may expose internal retrieval context.
+For production deployments, set `ENABLE_DEBUG_INSPECTOR=false` or enforce access controls around debug-capable interfaces.

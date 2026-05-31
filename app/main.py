@@ -9,7 +9,7 @@ from app.schemas import AnalyticsResponse, ChatRequest, ChatResponse, SourceChun
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="AI Support Chatbot API", version="2.2.1")
+app = FastAPI(title="AI Support Chatbot API", version="2.3.0")
 
 
 @app.on_event("startup")
@@ -47,6 +47,7 @@ def chat(payload: ChatRequest) -> ChatResponse:
         sources=sources,
         intent=result.intent,
         escalation_target=result.escalation_target,
+        debug=result.debug,
         handoff=result.handoff,
         ticket_draft=result.ticket_draft,
     )

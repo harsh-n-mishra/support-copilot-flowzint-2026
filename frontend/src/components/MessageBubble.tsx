@@ -1,5 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import type { Message } from "../types/chat";
+import { DebugInspector } from "./DebugInspector";
 import { HandoffCard } from "./HandoffCard";
 import { SourceList } from "./SourceList";
 import { TicketDraftCard } from "./TicketDraftCard";
@@ -26,12 +27,21 @@ export function MessageBubble({ message }: Props) {
 
         {!isUser && (message.intent || message.escalationTarget) && (
           <div className="mt-3 rounded-md border border-slate-700 bg-slate-900/70 p-2 text-xs text-slate-300">
-            {message.intent && <div><strong>Intent:</strong> {message.intent}</div>}
-            {message.escalationTarget && <div><strong>Escalation:</strong> {message.escalationTarget}</div>}
+            {message.intent && (
+              <div>
+                <strong>Intent:</strong> {message.intent}
+              </div>
+            )}
+            {message.escalationTarget && (
+              <div>
+                <strong>Escalation:</strong> {message.escalationTarget}
+              </div>
+            )}
           </div>
         )}
 
         {!isUser && message.sources && <SourceList sources={message.sources} />}
+        {!isUser && message.debug && <DebugInspector debug={message.debug} />}
         {!isUser && message.handoff && <HandoffCard handoff={message.handoff} />}
         {!isUser && message.ticketDraft && <TicketDraftCard ticketDraft={message.ticketDraft} />}
       </div>

@@ -9,7 +9,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 
 from app.config import settings
-from app.schemas import HandoffTicket, TicketDraft
+from app.schemas import DebugInfo, HandoffTicket, TicketDraft
 
 PROMPT = ChatPromptTemplate.from_messages(
     [
@@ -25,6 +25,7 @@ PROMPT = ChatPromptTemplate.from_messages(
 )
 
 ESCALATION_BUFFER = 0.05
+MAX_CONTEXT_PREVIEW = 500
 
 _MEMORY: dict[str, deque[tuple[str, str]]] = defaultdict(lambda: deque(maxlen=settings.memory_turns))
 _SESSION_SUMMARY: dict[str, str] = defaultdict(str)
@@ -37,6 +38,7 @@ class RagResult:
     intent: str
     escalation_target: str
     retrieval_score: float
+    debug: DebugInfo
     handoff: HandoffTicket | None
     ticket_draft: TicketDraft | None
 
@@ -67,18 +69,64 @@ def _create_handoff(reason: str) -> HandoffTicket:
     )
 
 
-def _format_sources(raw_results: list[tuple]) -> list[dict]:
-    sources = []
+def _build_chunk_views(raw_results: list[tuple]) -> tuple[list[dict], list[dict]]:
+    """Build response source chunks and debug chunks from a single pass."""
+    sources: list[dict] = []
+    debug_chunks: list[dict] = []
+
     for idx, (doc, score) in enumerate(raw_results, start=1):
+        source = doc.metadata.get("source", "unknown")
+        normalized_score = round(float(score), 4)
+        snippet = doc.page_content[:220].replace("\n", " ")
+
         sources.append(
             {
                 "id": idx,
-                "source": doc.metadata.get("source", "unknown"),
-                "snippet": doc.page_content[:220].replace("\n", " "),
-                "score": round(float(score), 4),
+                "source": source,
+                "snippet": snippet,
+                "score": normalized_score,
             }
         )
-    return sources
+
+        debug_chunks.append(
+            {
+                "source": source,
+                "score": normalized_score,
+                "snippet": snippet,
+            }
+        )
+
+    return sources, debug_chunks
+
+
+def _build_context_preview(context: str) -> str:
+    preview = " ".join(context.split())
+    if len(preview) <= MAX_CONTEXT_PREVIEW:
+        return preview
+    return f"{preview[:MAX_CONTEXT_PREVIEW]}..."
+
+
+def _build_debug_info(
+    *,
+    debug_chunks: list[dict],
+    top_score: float,
+    handoff_reason: str | None,
+    prompt_context_preview: str,
+) -> DebugInfo:
+    if settings.enable_debug_inspector:
+        return DebugInfo(
+            retrieved_chunks=debug_chunks,
+            top_score=round(float(top_score), 4),
+            handoff_reason=handoff_reason,
+            prompt_context_preview=prompt_context_preview,
+        )
+
+    return DebugInfo(
+        retrieved_chunks=[],
+        top_score=0.0,
+        handoff_reason=None,
+        prompt_context_preview="Debug inspector is disabled.",
+    )
 
 
 def _classify_intent(question: str) -> str:
@@ -119,7 +167,6 @@ def _recommend_escalation(intent: str, top_score: float, handoff: bool) -> str:
 
 
 def _substantive_answer_for_summary(answer: str) -> str:
-    """Remove auto-generated ticket/escalation boilerplate from summary memory."""
     marker = "\n\nI have also created ticket **"
     cleaned = answer.split(marker, maxsplit=1)[0]
 
@@ -165,6 +212,8 @@ def _apply_workflow(
     top_score: float,
     handoff_reason: str | None,
     sources: list[dict],
+    debug_chunks: list[dict],
+    prompt_context_preview: str,
     session_id: str,
 ) -> RagResult:
     handoff = _create_handoff(handoff_reason) if handoff_reason else None
@@ -180,12 +229,20 @@ def _apply_workflow(
         else None
     )
 
+    debug = _build_debug_info(
+        debug_chunks=debug_chunks,
+        top_score=top_score,
+        handoff_reason=handoff_reason,
+        prompt_context_preview=prompt_context_preview,
+    )
+
     return RagResult(
         answer=answer,
         sources=sources,
         intent=intent,
         escalation_target=escalation_target,
         retrieval_score=top_score,
+        debug=debug,
         handoff=handoff,
         ticket_draft=ticket_draft,
     )
@@ -206,6 +263,8 @@ def ask_support_question(question: str, session_id: str) -> RagResult:
             top_score=0.0,
             handoff_reason="No relevant documentation found for this request.",
             sources=[],
+            debug_chunks=[],
+            prompt_context_preview="No retrieved context.",
             session_id=session_id,
         )
 
@@ -231,7 +290,8 @@ def ask_support_question(question: str, session_id: str) -> RagResult:
     )
 
     answer = str(response.content)
-    sources = _format_sources(results)
+    sources, debug_chunks = _build_chunk_views(results)
+    prompt_context_preview = _build_context_preview(context)
     handoff_reason = (
         "Low retrieval confidence or unknown answer. Requires human support follow-up."
         if _needs_handoff(answer, top_score)
@@ -245,6 +305,8 @@ def ask_support_question(question: str, session_id: str) -> RagResult:
         top_score=top_score,
         handoff_reason=handoff_reason,
         sources=sources,
+        debug_chunks=debug_chunks,
+        prompt_context_preview=prompt_context_preview,
         session_id=session_id,
     )
 

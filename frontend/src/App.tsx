@@ -59,6 +59,7 @@ export default function App() {
         content: response.answer,
         intent: response.intent,
         escalationTarget: response.escalation_target,
+        debug: response.debug,
         sources: response.sources,
         handoff: response.handoff,
         ticketDraft: response.ticket_draft,
