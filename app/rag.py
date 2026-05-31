@@ -6,7 +6,8 @@ from uuid import uuid4
 
 from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 from app.config import settings
 from app.schemas import DebugInfo, HandoffTicket, TicketDraft
@@ -44,9 +45,8 @@ class RagResult:
 
 
 def _get_vectorstore() -> Chroma:
-    embeddings = GoogleGenerativeAIEmbeddings(
-        model=settings.gemini_embedding_model,
-        google_api_key=settings.gemini_api_key,
+    embeddings = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
     return Chroma(
         persist_directory=settings.vector_db_dir,

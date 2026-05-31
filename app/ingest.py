@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import TextLoader, UnstructuredMarkdownLoader
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 from app.config import settings
 
@@ -43,9 +43,8 @@ def build_or_refresh_index() -> int:
     splitter = RecursiveCharacterTextSplitter(chunk_size=900, chunk_overlap=150)
     chunks = splitter.split_documents(documents)
 
-    embeddings = GoogleGenerativeAIEmbeddings(
-        model=settings.gemini_embedding_model,
-        google_api_key=settings.gemini_api_key,
+    embeddings = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
 
     vectorstore = Chroma(
@@ -63,7 +62,6 @@ def build_or_refresh_index() -> int:
         embedding=embeddings,
         persist_directory=settings.vector_db_dir,
     )
-    vectorstore.persist()
 
     return len(chunks)
 
