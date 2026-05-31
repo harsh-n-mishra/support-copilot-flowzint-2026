@@ -34,3 +34,22 @@ class ChatResponse(BaseModel):
     escalation_target: str
     handoff: HandoffTicket | None = None
     ticket_draft: TicketDraft | None = None
+
+
+class IntentCount(BaseModel):
+    intent: str
+    count: int
+
+
+class FailedQuery(BaseModel):
+    question: str
+    retrieval_score: float
+    timestamp: str
+
+
+class AnalyticsResponse(BaseModel):
+    total_chats: int
+    handoff_rate: float
+    avg_retrieval_score: float
+    top_intents: list[IntentCount]
+    failed_queries: list[FailedQuery]

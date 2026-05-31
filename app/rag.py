@@ -36,6 +36,7 @@ class RagResult:
     sources: list[dict]
     intent: str
     escalation_target: str
+    retrieval_score: float
     handoff: HandoffTicket | None
     ticket_draft: TicketDraft | None
 
@@ -184,6 +185,7 @@ def _apply_workflow(
         sources=sources,
         intent=intent,
         escalation_target=escalation_target,
+        retrieval_score=top_score,
         handoff=handoff,
         ticket_draft=ticket_draft,
     )

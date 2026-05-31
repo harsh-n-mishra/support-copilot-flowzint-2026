@@ -1,9 +1,10 @@
 # AI Support Copilot
 
 Production-style monorepo with:
-- **FastAPI backend** (RAG + memory + ticket handoff + support workflow metadata)
+- **FastAPI backend** (RAG + memory + ticket handoff + support workflow metadata + analytics)
 - **React + TypeScript frontend** (Vite + Tailwind)
 - **Gemini API** for embeddings + chat generation
+- **SQLite analytics** for chat interaction tracking
 
 ## Features
 - RAG over Chroma vectorstore
@@ -14,6 +15,7 @@ Production-style monorepo with:
 - Intent classification for each user query
 - Escalation target recommendation
 - Handoff ticket generation + structured ticket draft
+- Chat analytics tracking + dashboard
 - Memory clear endpoint (`DELETE /memory/{session_id}`)
 
 ## Repository Structure
@@ -21,6 +23,7 @@ Production-style monorepo with:
 ```text
 .
 ├── app/
+│   ├── analytics.py
 │   ├── config.py
 │   ├── ingest.py
 │   ├── main.py
@@ -61,11 +64,12 @@ python -m app.ingest
 uvicorn app.main:app --reload
 ```
 
-Backend endpoints preserved:
+Backend endpoints:
 - `GET /health`
 - `POST /chat`
 - `POST /reindex`
 - `DELETE /memory/{session_id}`
+- `GET /analytics`
 
 ## Frontend Setup
 
@@ -78,17 +82,15 @@ npm run dev
 
 Default frontend URL: `http://localhost:5173`
 
-## Chat Response Additions
+## Analytics
 
-`POST /chat` now also returns:
-- `intent`
-- `escalation_target`
-- `ticket_draft` (when handoff is triggered)
+Every chat interaction is recorded in SQLite (`analytics.db`) with:
+- session ID
+- timestamp
+- question
+- intent
+- retrieval score
+- handoff status
+- escalation target
 
-## API Example
-
-```bash
-curl -X POST http://127.0.0.1:8000/chat \
-  -H 'Content-Type: application/json' \
-  -d '{"session_id":"user-123","question":"How do I reset my password?"}'
-```
+`GET /analytics` returns aggregate metrics and failed-query rows for dashboard display.

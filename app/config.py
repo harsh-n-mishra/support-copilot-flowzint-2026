@@ -2,10 +2,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    openai_api_key: str
-    openai_model: str = "gpt-4o-mini"
-    embedding_model: str = "text-embedding-3-small"
+    gemini_api_key: str
+    gemini_model: str = "gemini-1.5-flash"
+    gemini_embedding_model: str = "models/text-embedding-004"
     vector_db_dir: str = ".vectorstore"
+    analytics_db_path: str = "analytics.db"
     docs_dir: str = "data/docs"
     top_k: int = 4
     memory_turns: int = 6

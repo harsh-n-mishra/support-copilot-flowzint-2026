@@ -1,10 +1,20 @@
+import logging
+
 from fastapi import FastAPI, HTTPException
 
+from app.analytics import get_analytics_summary, init_analytics_db, record_chat_analytics
 from app.ingest import build_or_refresh_index
 from app.rag import ask_support_question, clear_memory
-from app.schemas import ChatRequest, ChatResponse, SourceChunk
+from app.schemas import AnalyticsResponse, ChatRequest, ChatResponse, SourceChunk
 
-app = FastAPI(title="AI Support Chatbot API", version="2.1.0")
+logger = logging.getLogger(__name__)
+
+app = FastAPI(title="AI Support Chatbot API", version="2.2.1")
+
+
+@app.on_event("startup")
+def startup_event() -> None:
+    init_analytics_db()
 
 
 @app.get("/health")
@@ -18,6 +28,18 @@ def chat(payload: ChatRequest) -> ChatResponse:
         result = ask_support_question(payload.question, payload.session_id)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    try:
+        record_chat_analytics(
+            session_id=payload.session_id,
+            question=payload.question,
+            intent=result.intent,
+            retrieval_score=result.retrieval_score,
+            handoff_triggered=result.handoff is not None,
+            escalation_target=result.escalation_target,
+        )
+    except Exception:
+        logger.exception("Analytics write failed for session_id=%s", payload.session_id)
 
     sources = [SourceChunk(**item) for item in result.sources]
     return ChatResponse(
@@ -43,3 +65,12 @@ def reindex() -> dict[str, str | int]:
 def delete_memory(session_id: str) -> dict[str, str]:
     clear_memory(session_id)
     return {"status": "ok", "session_id": session_id, "message": "Memory cleared."}
+
+
+@app.get("/analytics", response_model=AnalyticsResponse)
+def analytics() -> AnalyticsResponse:
+    try:
+        summary = get_analytics_summary()
+        return AnalyticsResponse(**summary)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
