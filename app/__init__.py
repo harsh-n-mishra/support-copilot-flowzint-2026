@@ -1,1 +1,1 @@
-""AI support chatbot package."""
+"""AI support chatbot package."""
