@@ -1,6 +1,5 @@
 import logging
-
-logging.basicConfig(level=logging.INFO)
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +9,7 @@ from app.analytics import (
     init_analytics_db,
     record_chat_analytics,
 )
+from app.config import settings
 from app.ingest import build_or_refresh_index
 from app.rag import ask_support_question, clear_memory
 from app.schemas import (
@@ -18,6 +18,8 @@ from app.schemas import (
     ChatResponse,
     SourceChunk,
 )
+
+logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +41,25 @@ app.add_middleware(
 def startup_event() -> None:
     init_analytics_db()
 
+    vector_dir = Path(settings.vector_db_dir)
+
+    try:
+        if not vector_dir.exists() or not any(vector_dir.iterdir()):
+            logger.info(
+                "Vector store missing or empty. Building initial index..."
+            )
+            chunks = build_or_refresh_index()
+            logger.info("Indexed %s chunks", chunks)
+        else:
+            logger.info(
+                "Using existing vector store: %s",
+                vector_dir,
+            )
+
+    except Exception:
+        logger.exception("Failed to initialize vector store")
+        raise
+
 
 @app.get("/health")
 def health_check() -> dict[str, str]:
@@ -48,10 +69,16 @@ def health_check() -> dict[str, str]:
 @app.post("/chat", response_model=ChatResponse)
 def chat(payload: ChatRequest) -> ChatResponse:
     try:
-        result = ask_support_question(payload.question, payload.session_id)
+        result = ask_support_question(
+            payload.question,
+            payload.session_id,
+        )
     except Exception as exc:
         logger.exception("Chat endpoint failed")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc),
+        ) from exc
 
     try:
         record_chat_analytics(
@@ -85,9 +112,15 @@ def chat(payload: ChatRequest) -> ChatResponse:
 def reindex() -> dict[str, str | int]:
     try:
         chunks = build_or_refresh_index()
-        return {"status": "ok", "chunks_indexed": chunks}
+        return {
+            "status": "ok",
+            "chunks_indexed": chunks,
+        }
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc),
+        ) from exc
 
 
 @app.delete("/memory/{session_id}")
@@ -106,4 +139,7 @@ def analytics() -> AnalyticsResponse:
         summary = get_analytics_summary()
         return AnalyticsResponse(**summary)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc),
+        ) from exc

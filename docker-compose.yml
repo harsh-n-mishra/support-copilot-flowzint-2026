@@ -1,0 +1,41 @@
+services:
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+
+    container_name: support-backend
+
+    ports:
+      - "8000:8000"
+
+    env_file:
+      - .env.docker
+
+    volumes:
+      - ./storage/chroma:/app/vectorstore
+      - ./storage/analytics:/app/analytics
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+
+    container_name: support-frontend
+
+    ports:
+      - "5173:5173"
+
+    depends_on:
+      - backend
+
+    restart: unless-stopped
