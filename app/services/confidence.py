@@ -2,21 +2,22 @@ from enum import Enum
 
 from app.config import settings
 
+
 class ConfidenceLevel(str, Enum):
     HIGH = "HIGH"
     MEDIUM = "MEDIUM"
     LOW = "LOW"
 
 
-def calculate_confidence(score: float) -> ConfidenceLevel:
+def calculate_confidence(
+    score: float,
+    retrieved_chunk_count: int,
+) -> ConfidenceLevel:
     """
-    Maps a retrieval score to a confidence level.
+    Maps retrieval metadata to a confidence level.
 
-    Thresholds are configured through application settings.
-
-    HIGH   : score >= confidence_high_threshold
-    MEDIUM : score >= confidence_medium_threshold
-    LOW    : otherwise
+    Currently only top_score is used. retrieved_chunk_count is
+    accepted for future confidence improvements.
     """
 
     if score >= settings.confidence_high_threshold:

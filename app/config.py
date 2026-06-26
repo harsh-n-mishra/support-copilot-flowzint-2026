@@ -11,8 +11,8 @@ class Settings(BaseSettings):
     top_k: int = 4
     memory_turns: int = 6
     min_relevance_score: float = 0.2
-    confidence_high_threshold: float = 0.80
-    confidence_medium_threshold: float = 0.55
+    confidence_high_threshold: float = 0.45
+    confidence_medium_threshold: float = 0.15
     enable_debug_inspector: bool = True
     support_email: str = "support@example.com"
     system_prompt: str = (
