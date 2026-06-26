@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from enum import Enum
 
@@ -42,3 +43,40 @@ class KnowledgeGap:
     average_retrieval_score: float
 
     priority: GapPriority
+
+
+TOPIC_RULES = {
+    "password reset": [
+        {"password", "reset"},
+        {"forgot", "password"},
+    ],
+    "refund": [
+        {"refund"},
+    ],
+    "subscription": [
+        {"subscription"},
+    ],
+    "slack integration": [
+        {"slack"},
+    ],
+    "rate limits": [
+        {"rate", "limit"},
+        {"rate", "limits"},
+    ],
+}
+
+
+def normalize_question(question: str) -> str:
+    """
+    Normalize a user's support question into a canonical topic.
+
+    Returns the matching topic name or "other" if no topic matches.
+    """
+    words = set(re.findall(r"\w+", question.lower()))
+
+    for topic, keyword_sets in TOPIC_RULES.items():
+        for keywords in keyword_sets:
+            if keywords.issubset(words):
+                return topic
+
+    return "other"

@@ -11,7 +11,7 @@ class ConfidenceLevel(str, Enum):
 
 def calculate_confidence(
     score: float,
-    retrieved_chunk_count: int,
+    retrieved_chunk_count: int = 1,
 ) -> ConfidenceLevel:
     """
     Maps retrieval metadata to a confidence level.
