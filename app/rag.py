@@ -12,6 +12,14 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from app.config import settings
 from app.schemas import DebugInfo, HandoffTicket, TicketDraft
 
+from time import perf_counter
+
+from app.services.confidence import (
+    ConfidenceLevel,
+    calculate_confidence,
+)
+from app.services.verification import VerificationStatus
+
 PROMPT = ChatPromptTemplate.from_messages(
     [
         ("system", "{system_prompt}"),
@@ -35,12 +43,29 @@ _SESSION_SUMMARY: dict[str, str] = defaultdict(str)
 @dataclass
 class RagResult:
     answer: str
+
     sources: list[dict]
+
     intent: str
-    escalation_target: str
+
     retrieval_score: float
+
+    confidence: ConfidenceLevel
+
+    answered: bool
+
+    verification_status: VerificationStatus
+
+    retrieved_chunk_count: int
+
+    response_time_ms: int
+
+    escalation_target: str
+
     debug: DebugInfo
+
     handoff: HandoffTicket | None
+
     ticket_draft: TicketDraft | None
 
 
@@ -152,6 +177,10 @@ def _needs_handoff(answer: str, top_score: float) -> bool:
     return top_score < settings.min_relevance_score or unsure
 
 
+def _determine_answered( handoff_reason: str | None, ) -> bool:
+    return handoff_reason is None
+
+
 def _recommend_escalation(intent: str, top_score: float, handoff: bool) -> str:
     if handoff:
         if intent == "billing":
@@ -215,16 +244,43 @@ def _apply_workflow(
     debug_chunks: list[dict],
     prompt_context_preview: str,
     session_id: str,
+    confidence: ConfidenceLevel,
+    answered: bool,
+    verification_status: VerificationStatus,
+    retrieved_chunk_count: int,
+    response_time_ms: int,
 ) -> RagResult:
     handoff = _create_handoff(handoff_reason) if handoff_reason else None
-    if handoff is not None and handoff_reason != "No relevant documentation found for this request.":
-        answer += f"\n\nI have also created ticket **{handoff.ticket_id}** for a support specialist."
+
+    if (
+        handoff is not None
+        and handoff_reason != "No relevant documentation found for this request."
+    ):
+        answer += (
+            f"\n\nI have also created ticket **{handoff.ticket_id}** "
+            "for a support specialist."
+        )
 
     _MEMORY[session_id].append((question, answer))
-    conversation_summary = _update_session_summary(session_id, question, answer)
-    escalation_target = _recommend_escalation(intent, top_score=top_score, handoff=handoff is not None)
+    conversation_summary = _update_session_summary(
+        session_id,
+        question,
+        answer,
+    )
+
+    escalation_target = _recommend_escalation(
+        intent,
+        top_score=top_score,
+        handoff=handoff is not None,
+    )
+
     ticket_draft = (
-        _build_ticket_draft(question, intent, escalation_target, conversation_summary)
+        _build_ticket_draft(
+            question,
+            intent,
+            escalation_target,
+            conversation_summary,
+        )
         if handoff is not None
         else None
     )
@@ -240,8 +296,13 @@ def _apply_workflow(
         answer=answer,
         sources=sources,
         intent=intent,
-        escalation_target=escalation_target,
         retrieval_score=top_score,
+        confidence=confidence,
+        answered=answered,
+        verification_status=verification_status,
+        retrieved_chunk_count=retrieved_chunk_count,
+        response_time_ms=response_time_ms,
+        escalation_target=escalation_target,
         debug=debug,
         handoff=handoff,
         ticket_draft=ticket_draft,
@@ -249,26 +310,50 @@ def _apply_workflow(
 
 
 def ask_support_question(question: str, session_id: str) -> RagResult:
+    start_time = perf_counter()
+
     intent = _classify_intent(question)
 
     vectorstore = _get_vectorstore()
-    results = vectorstore.similarity_search_with_relevance_scores(question, k=settings.top_k)
+    results = vectorstore.similarity_search_with_relevance_scores(
+        question,
+        k=settings.top_k,
+    )
+
+    retrieved_chunk_count = len(results)
 
     if not results:
         answer = "I could not find relevant documentation to answer that confidently."
+        response_time_ms = round((perf_counter() - start_time) * 1000)
+
+        confidence = ConfidenceLevel.LOW
+
+        verification_status = VerificationStatus.UNKNOWN
+
+        handoff_reason = "No relevant documentation found for this request."
+
+        answered = _determine_answered(handoff_reason)
+
         return _apply_workflow(
             question=question,
             intent=intent,
             answer=answer,
             top_score=0.0,
-            handoff_reason="No relevant documentation found for this request.",
+            handoff_reason=handoff_reason,
             sources=[],
             debug_chunks=[],
             prompt_context_preview="No retrieved context.",
             session_id=session_id,
+            confidence=confidence,
+            answered=answered,
+            verification_status=verification_status,
+            retrieved_chunk_count=retrieved_chunk_count,
+            response_time_ms=response_time_ms,
         )
 
     top_score = max(score for _, score in results)
+    confidence = calculate_confidence(top_score)
+    verification_status = VerificationStatus.UNKNOWN
     docs = [doc for doc, _ in results]
     context = "\n\n".join(doc.page_content for doc in docs)
     history = _build_history_text(session_id)
@@ -280,6 +365,7 @@ def ask_support_question(question: str, session_id: str) -> RagResult:
     )
 
     chain = PROMPT | llm
+
     response = chain.invoke(
         {
             "system_prompt": settings.system_prompt,
@@ -292,11 +378,16 @@ def ask_support_question(question: str, session_id: str) -> RagResult:
     answer = str(response.content)
     sources, debug_chunks = _build_chunk_views(results)
     prompt_context_preview = _build_context_preview(context)
+
     handoff_reason = (
         "Low retrieval confidence or unknown answer. Requires human support follow-up."
         if _needs_handoff(answer, top_score)
         else None
     )
+
+    answered = _determine_answered(handoff_reason)
+
+    response_time_ms = round((perf_counter() - start_time) * 1000)
 
     return _apply_workflow(
         question=question,
@@ -308,6 +399,11 @@ def ask_support_question(question: str, session_id: str) -> RagResult:
         debug_chunks=debug_chunks,
         prompt_context_preview=prompt_context_preview,
         session_id=session_id,
+        confidence=confidence,
+        answered=answered,
+        verification_status=verification_status,
+        retrieved_chunk_count=retrieved_chunk_count,
+        response_time_ms=response_time_ms,
     )
 
 
