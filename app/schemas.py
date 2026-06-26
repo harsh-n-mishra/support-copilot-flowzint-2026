@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
 
+from app.services.confidence import ConfidenceLevel
+
 
 class ChatRequest(BaseModel):
     question: str = Field(..., min_length=2, description="User support question")
@@ -44,6 +46,7 @@ class ChatResponse(BaseModel):
     answer: str
     sources: list[SourceChunk]
     intent: str
+    confidence: ConfidenceLevel
     escalation_target: str
     debug: DebugInfo
     handoff: HandoffTicket | None = None

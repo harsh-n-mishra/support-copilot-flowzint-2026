@@ -25,11 +25,16 @@ export function MessageBubble({ message }: Props) {
           <ReactMarkdown className="prose prose-invert prose-sm max-w-none">{message.content}</ReactMarkdown>
         )}
 
-        {!isUser && (message.intent || message.escalationTarget) && (
+        {!isUser && (message.intent || message.confidence || message.escalationTarget) && (
           <div className="mt-3 rounded-md border border-slate-700 bg-slate-900/70 p-2 text-xs text-slate-300">
             {message.intent && (
               <div>
                 <strong>Intent:</strong> {message.intent}
+              </div>
+            )}
+            {message.confidence && (
+              <div>
+                <strong>Confidence:</strong> {message.confidence}
               </div>
             )}
             {message.escalationTarget && (

@@ -32,10 +32,16 @@ export type TicketDraft = {
   conversation_summary: string;
 };
 
+export type ConfidenceLevel =
+  | "HIGH"
+  | "MEDIUM"
+  | "LOW";
+
 export type ChatResponse = {
   answer: string;
   sources: Source[];
   intent: string;
+  confidence: ConfidenceLevel;
   escalation_target: string;
   debug: DebugInfo;
   handoff: Handoff | null;
@@ -66,6 +72,7 @@ export type Message = {
   role: "user" | "assistant";
   content: string;
   intent?: string;
+  confidence?: ConfidenceLevel;
   escalationTarget?: string;
   debug?: DebugInfo;
   sources?: Source[];

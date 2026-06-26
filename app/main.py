@@ -106,6 +106,7 @@ def chat(payload: ChatRequest) -> ChatResponse:
         answer=result.answer,
         sources=sources,
         intent=result.intent,
+        confidence=result.confidence,
         escalation_target=result.escalation_target,
         debug=result.debug,
         handoff=result.handoff,

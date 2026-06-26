@@ -58,6 +58,7 @@ export default function App() {
         role: "assistant",
         content: response.answer,
         intent: response.intent,
+        confidence: response.confidence,
         escalationTarget: response.escalation_target,
         debug: response.debug,
         sources: response.sources,
