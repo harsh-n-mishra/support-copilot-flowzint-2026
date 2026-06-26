@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.config import settings
+from app.services.confidence import ConfidenceLevel
+from app.services.verification import VerificationStatus
 
 
 def _get_connection() -> sqlite3.Connection:
@@ -24,6 +26,11 @@ def init_analytics_db() -> None:
                 question TEXT NOT NULL,
                 intent TEXT NOT NULL,
                 retrieval_score REAL NOT NULL,
+                confidence TEXT NOT NULL,
+                answered INTEGER NOT NULL,
+                verification_status TEXT NOT NULL,
+                retrieved_chunk_count INTEGER NOT NULL,
+                response_time_ms INTEGER NOT NULL,
                 handoff_triggered INTEGER NOT NULL,
                 escalation_target TEXT NOT NULL
             )
@@ -37,6 +44,11 @@ def record_chat_analytics(
     question: str,
     intent: str,
     retrieval_score: float,
+    confidence: ConfidenceLevel,
+    answered: bool,
+    verification_status: VerificationStatus,
+    retrieved_chunk_count: int,
+    response_time_ms: int,
     handoff_triggered: bool,
     escalation_target: str,
 ) -> None:
@@ -46,9 +58,19 @@ def record_chat_analytics(
         conn.execute(
             """
             INSERT INTO chat_analytics (
-                session_id, timestamp, question, intent,
-                retrieval_score, handoff_triggered, escalation_target
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                session_id,
+                timestamp,
+                question,
+                intent,
+                retrieval_score,
+                confidence,
+                answered,
+                verification_status,
+                retrieved_chunk_count,
+                response_time_ms,
+                handoff_triggered,
+                escalation_target
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 session_id,
@@ -56,6 +78,11 @@ def record_chat_analytics(
                 question,
                 intent,
                 retrieval_score,
+                confidence.value,
+                1 if answered else 0,
+                verification_status.value,
+                retrieved_chunk_count,
+                response_time_ms,
                 1 if handoff_triggered else 0,
                 escalation_target,
             ),
@@ -64,14 +91,19 @@ def record_chat_analytics(
 
 def get_analytics_summary(limit_failed_queries: int = 10) -> dict[str, Any]:
     with _get_connection() as conn:
-        total_chats = conn.execute("SELECT COUNT(*) AS c FROM chat_analytics").fetchone()["c"]
+        total_chats = conn.execute(
+            "SELECT COUNT(*) AS c FROM chat_analytics"
+        ).fetchone()["c"]
 
         handoff_count = conn.execute(
             "SELECT COUNT(*) AS c FROM chat_analytics WHERE handoff_triggered = 1"
         ).fetchone()["c"]
 
         avg_score = conn.execute(
-            "SELECT COALESCE(AVG(retrieval_score), 0) AS avg_score FROM chat_analytics"
+            """
+            SELECT COALESCE(AVG(retrieval_score), 0) AS avg_score
+            FROM chat_analytics
+            """
         ).fetchone()["avg_score"]
 
         top_intents_rows = conn.execute(
@@ -102,7 +134,11 @@ def get_analytics_summary(limit_failed_queries: int = 10) -> dict[str, Any]:
         "handoff_rate": round(handoff_rate, 4),
         "avg_retrieval_score": round(float(avg_score or 0.0), 4),
         "top_intents": [
-            {"intent": row["intent"], "count": int(row["count"])} for row in top_intents_rows
+            {
+                "intent": row["intent"],
+                "count": int(row["count"]),
+            }
+            for row in top_intents_rows
         ],
         "failed_queries": [
             {
