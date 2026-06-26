@@ -80,3 +80,32 @@ def normalize_question(question: str) -> str:
                 return topic
 
     return "other"
+
+def calculate_gap_priority(
+    metrics: TopicMetrics,
+) -> TopicMetrics:
+    """
+    Calculate the priority of a knowledge gap based on support metrics.
+
+    Priority is determined using a weighted score:
+    - unanswered questions are weighted most heavily
+    - low-confidence answers are weighted next
+    - medium-confidence answers contribute slightly
+    - frequency is capped so common topics don't dominate
+    """
+
+    metrics.priority_score = (
+        metrics.unanswered_count * 3
+        + metrics.low_confidence_count * 2
+        + metrics.medium_confidence_count
+        + min(metrics.frequency, 5)
+    )
+
+    if metrics.priority_score >= 12:
+        metrics.priority = GapPriority.HIGH
+    elif metrics.priority_score >= 6:
+        metrics.priority = GapPriority.MEDIUM
+    else:
+        metrics.priority = GapPriority.LOW
+
+    return metrics
