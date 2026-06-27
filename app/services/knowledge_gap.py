@@ -1,7 +1,9 @@
 import re
 from dataclasses import dataclass
 from enum import Enum
+from collections import defaultdict
 
+from app.services.confidence import ConfidenceLevel
 
 class GapPriority(str, Enum):
     HIGH = "HIGH"
@@ -107,5 +109,48 @@ def calculate_gap_priority(
         metrics.priority = GapPriority.MEDIUM
     else:
         metrics.priority = GapPriority.LOW
+
+    return metrics
+
+def aggregate_topic_metrics(rows) -> dict[str, TopicMetrics]:
+    metrics: dict[str, TopicMetrics] = {}
+
+    for row in rows:
+        topic = normalize_question(row["question"])
+
+        if topic not in metrics:
+            metrics[topic] = TopicMetrics(topic=topic)
+
+        topic_metrics = metrics[topic]
+
+        topic_metrics.frequency += 1
+
+        if not row["answered"]:
+            topic_metrics.unanswered_count += 1
+
+        confidence = row["confidence"]
+
+        if confidence == ConfidenceLevel.HIGH:
+            topic_metrics.high_confidence_count += 1
+
+        elif confidence == ConfidenceLevel.MEDIUM:
+            topic_metrics.medium_confidence_count += 1
+
+        else:
+            topic_metrics.low_confidence_count += 1
+
+        topic_metrics.average_retrieval_score += row["retrieval_score"]
+
+    for topic_metrics in metrics.values():
+        topic_metrics.average_retrieval_score /= topic_metrics.frequency
+
+        answered = (
+            topic_metrics.frequency
+            - topic_metrics.unanswered_count
+        )
+
+        topic_metrics.success_rate = (
+            answered / topic_metrics.frequency
+        )
 
     return metrics
