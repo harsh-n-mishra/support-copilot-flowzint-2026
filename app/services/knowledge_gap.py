@@ -5,6 +5,8 @@ from collections import defaultdict
 
 from app.services.confidence import ConfidenceLevel
 
+from app.analytics import get_chat_interactions
+
 class GapPriority(str, Enum):
     HIGH = "HIGH"
     MEDIUM = "MEDIUM"
@@ -128,7 +130,7 @@ def aggregate_topic_metrics(rows) -> dict[str, TopicMetrics]:
         if not row["answered"]:
             topic_metrics.unanswered_count += 1
 
-        confidence = row["confidence"]
+        confidence = ConfidenceLevel(row["confidence"])
 
         if confidence == ConfidenceLevel.HIGH:
             topic_metrics.high_confidence_count += 1
@@ -154,3 +156,37 @@ def aggregate_topic_metrics(rows) -> dict[str, TopicMetrics]:
         )
 
     return metrics
+
+def get_knowledge_gaps() -> list[KnowledgeGap]:
+    """
+    Generate a knowledge gap report from recorded chat interactions.
+    """
+
+    rows = get_chat_interactions()
+
+    metrics = aggregate_topic_metrics(rows)
+
+    for metric in metrics.values():
+        calculate_gap_priority(metric)
+
+    sorted_metrics = sorted(
+        metrics.values(),
+        key=lambda m: (
+            m.priority_score,
+            m.frequency,
+        ),
+        reverse=True,
+    )
+
+    return [
+        KnowledgeGap(
+            topic=metric.topic,
+            frequency=metric.frequency,
+            average_retrieval_score=round(
+                metric.average_retrieval_score,
+                4,
+            ),
+            priority=metric.priority,
+        )
+        for metric in sorted_metrics
+    ]

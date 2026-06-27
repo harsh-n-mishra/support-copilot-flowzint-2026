@@ -89,6 +89,22 @@ def record_chat_analytics(
         )
 
 
+def get_chat_interactions() -> list[sqlite3.Row]:
+    """Return all recorded chat interactions for analytics."""
+
+    with _get_connection() as conn:
+        return conn.execute(
+            """
+            SELECT
+                question,
+                retrieval_score,
+                confidence,
+                answered
+            FROM chat_analytics
+            """
+        ).fetchall()
+
+
 def get_analytics_summary(limit_failed_queries: int = 10) -> dict[str, Any]:
     with _get_connection() as conn:
         total_chats = conn.execute(
