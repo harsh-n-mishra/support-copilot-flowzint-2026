@@ -5,7 +5,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.analytics import (
+    get_analytics_dashboard_summary,
     get_analytics_summary,
+    get_support_health,
     init_analytics_db,
     record_chat_analytics,
 )
@@ -14,9 +16,12 @@ from app.ingest import build_or_refresh_index
 from app.rag import ask_support_question, clear_memory
 from app.schemas import (
     AnalyticsResponse,
+    AnalyticsSummaryResponse,
     ChatRequest,
     ChatResponse,
+    KnowledgeGapResponse,
     SourceChunk,
+    SupportHealthResponse,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -149,3 +154,34 @@ def analytics() -> AnalyticsResponse:
             status_code=500,
             detail=str(exc),
         ) from exc
+
+
+@app.get("/support-health", response_model=SupportHealthResponse,)
+def support_health() -> SupportHealthResponse:
+    try:
+        return SupportHealthResponse(
+            **get_support_health()
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc),
+        ) from exc
+
+
+@app.get("/analytics-summary", response_model=AnalyticsSummaryResponse,)
+def analytics_summary() -> AnalyticsSummaryResponse:
+    try:
+        return AnalyticsSummaryResponse(
+            **get_analytics_dashboard_summary()
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc),
+        ) from exc
+
+
+@app.get("/knowledge-gaps", response_model=list[KnowledgeGapResponse],)
+def knowledge_gaps():
+    return get_knowledge_gaps()

@@ -1,72 +1,187 @@
-from pydantic import BaseModel, Field
+import logging
+from pathlib import Path
 
-from app.services.confidence import ConfidenceLevel
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
+from app.analytics import (
+    get_analytics_dashboard_summary,
+    get_analytics_summary,
+    get_support_health,
+    init_analytics_db,
+    record_chat_analytics,
+)
+from app.config import settings
+from app.ingest import build_or_refresh_index
+from app.rag import ask_support_question, clear_memory
+from app.schemas import (
+    AnalyticsResponse,
+    AnalyticsSummaryResponse,
+    ChatRequest,
+    ChatResponse,
+    KnowledgeGapResponse,
+    SourceChunk,
+    SupportHealthResponse,
+)
 
-class ChatRequest(BaseModel):
-    question: str = Field(..., min_length=2, description="User support question")
-    session_id: str = Field(default="default", description="Conversation/session identifier")
+logging.basicConfig(level=logging.INFO)
 
+logger = logging.getLogger(__name__)
 
-class SourceChunk(BaseModel):
-    id: int
-    source: str
-    snippet: str
-    score: float
+app = FastAPI(title="AI Support Chatbot API", version="2.3.0")
 
-
-class DebugChunk(BaseModel):
-    source: str
-    score: float
-    snippet: str
-
-
-class DebugInfo(BaseModel):
-    retrieved_chunks: list[DebugChunk]
-    top_score: float
-    handoff_reason: str | None = None
-    prompt_context_preview: str
-
-
-class HandoffTicket(BaseModel):
-    ticket_id: str
-    reason: str
-    contact: str
-
-
-class TicketDraft(BaseModel):
-    title: str
-    summary: str
-    intent: str
-    escalation_target: str
-    conversation_summary: str
-
-
-class ChatResponse(BaseModel):
-    answer: str
-    sources: list[SourceChunk]
-    intent: str
-    confidence: ConfidenceLevel
-    escalation_target: str
-    debug: DebugInfo
-    handoff: HandoffTicket | None = None
-    ticket_draft: TicketDraft | None = None
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
-class IntentCount(BaseModel):
-    intent: str
-    count: int
+@app.on_event("startup")
+def startup_event() -> None:
+    init_analytics_db()
+
+    vector_dir = Path(settings.vector_db_dir)
+
+    try:
+        if not vector_dir.exists() or not any(vector_dir.iterdir()):
+            logger.info(
+                "Vector store missing or empty. Building initial index..."
+            )
+            chunks = build_or_refresh_index()
+            logger.info("Indexed %s chunks", chunks)
+        else:
+            logger.info(
+                "Using existing vector store: %s",
+                vector_dir,
+            )
+
+    except Exception:
+        logger.exception("Failed to initialize vector store")
+        raise
 
 
-class FailedQuery(BaseModel):
-    question: str
-    retrieval_score: float
-    timestamp: str
+@app.get("/health")
+def health_check() -> dict[str, str]:
+    return {"status": "ok"}
 
 
-class AnalyticsResponse(BaseModel):
-    total_chats: int
-    handoff_rate: float
-    avg_retrieval_score: float
-    top_intents: list[IntentCount]
-    failed_queries: list[FailedQuery]
+@app.post("/chat", response_model=ChatResponse)
+def chat(payload: ChatRequest) -> ChatResponse:
+    try:
+        result = ask_support_question(
+            payload.question,
+            payload.session_id,
+        )
+    except Exception as exc:
+        logger.exception("Chat endpoint failed")
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc),
+        ) from exc
+
+    try:
+        record_chat_analytics(
+            session_id=payload.session_id,
+            question=payload.question,
+            intent=result.intent,
+            retrieval_score=result.retrieval_score,
+            confidence=result.confidence,
+            answered=result.answered,
+            verification_status=result.verification_status,
+            retrieved_chunk_count=result.retrieved_chunk_count,
+            response_time_ms=result.response_time_ms,
+            handoff_triggered=result.handoff is not None,
+            escalation_target=result.escalation_target,
+        )
+    except Exception:
+        logger.exception(
+            "Analytics write failed for session_id=%s",
+            payload.session_id,
+        )
+
+    sources = [SourceChunk(**item) for item in result.sources]
+
+    return ChatResponse(
+        answer=result.answer,
+        sources=sources,
+        intent=result.intent,
+        confidence=result.confidence,
+        escalation_target=result.escalation_target,
+        debug=result.debug,
+        handoff=result.handoff,
+        ticket_draft=result.ticket_draft,
+    )
+
+
+@app.post("/reindex")
+def reindex() -> dict[str, str | int]:
+    try:
+        chunks = build_or_refresh_index()
+        return {
+            "status": "ok",
+            "chunks_indexed": chunks,
+        }
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc),
+        ) from exc
+
+
+@app.delete("/memory/{session_id}")
+def delete_memory(session_id: str) -> dict[str, str]:
+    clear_memory(session_id)
+    return {
+        "status": "ok",
+        "session_id": session_id,
+        "message": "Memory cleared.",
+    }
+
+
+@app.get("/analytics", response_model=AnalyticsResponse)
+def analytics() -> AnalyticsResponse:
+    try:
+        summary = get_analytics_summary()
+        return AnalyticsResponse(**summary)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc),
+        ) from exc
+
+
+@app.get("/support-health", response_model=SupportHealthResponse,)
+def support_health() -> SupportHealthResponse:
+    try:
+        return SupportHealthResponse(
+            **get_support_health()
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc),
+        ) from exc
+
+
+@app.get("/analytics-summary", response_model=AnalyticsSummaryResponse,)
+def analytics_summary() -> AnalyticsSummaryResponse:
+    try:
+        return AnalyticsSummaryResponse(
+            **get_analytics_dashboard_summary()
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc),
+        ) from exc
+
+
+@app.get("/knowledge-gaps", response_model=list[KnowledgeGapResponse],)
+def knowledge_gaps():
+    return get_knowledge_gaps()
