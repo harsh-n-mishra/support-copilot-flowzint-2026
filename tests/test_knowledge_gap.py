@@ -4,9 +4,12 @@ from app.services.knowledge_gap import (
     GapPriority,
     TopicMetrics,
     calculate_gap_priority,
+    TopicMetrics,
+    aggregate_topic_metrics,
+    normalize_question,
 )
 
-from app.services.knowledge_gap import normalize_question
+from app.services.confidence import ConfidenceLevel
 
 
 @pytest.mark.parametrize(
@@ -66,3 +69,36 @@ def test_calculate_gap_priority_low():
 
     assert metrics.priority_score == 2
     assert metrics.priority == GapPriority.LOW
+
+def test_aggregate_topic_metrics():
+    rows = [
+        {
+            "question": "Forgot password",
+            "answered": False,
+            "confidence": ConfidenceLevel.LOW,
+            "retrieval_score": 0.40,
+        },
+        {
+            "question": "Reset my password",
+            "answered": True,
+            "confidence": ConfidenceLevel.HIGH,
+            "retrieval_score": 0.90,
+        },
+        {
+            "question": "Need a refund",
+            "answered": False,
+            "confidence": ConfidenceLevel.MEDIUM,
+            "retrieval_score": 0.60,
+        },
+    ]
+
+    metrics = aggregate_topic_metrics(rows)
+
+    password = metrics["password reset"]
+
+    assert password.frequency == 2
+    assert password.unanswered_count == 1
+    assert password.high_confidence_count == 1
+    assert password.medium_confidence_count == 0
+    assert password.low_confidence_count == 1
+    assert password.average_retrieval_score == 0.65
