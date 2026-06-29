@@ -1,3 +1,5 @@
+import { Placeholder } from "../../components/ui/Placeholder";
+
 export function DashboardPage() {
-  return null;
+  return <Placeholder title="Dashboard" />;
 }

@@ -1,0 +1,33 @@
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes drawer-enter {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.motion-page {
+  animation: page-enter var(--duration-slow) var(--ease-standard) both;
+}
+
+.motion-drawer {
+  animation: drawer-enter var(--duration-base) var(--ease-standard) both;
+}
+
+.transition-foundation {
+  transition-duration: var(--duration-base);
+  transition-property: background-color, border-color, box-shadow, color, opacity, transform, width;
+  transition-timing-function: var(--ease-standard);
+}

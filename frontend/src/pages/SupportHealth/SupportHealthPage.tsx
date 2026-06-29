@@ -1,3 +1,5 @@
+import { Placeholder } from "../../components/ui/Placeholder";
+
 export function SupportHealthPage() {
-  return null;
+  return <Placeholder title="Support Health" />;
 }

@@ -1,3 +1,5 @@
+import { Placeholder } from "../../components/ui/Placeholder";
+
 export function AIInsightsPage() {
-  return null;
+  return <Placeholder title="AI Insights" />;
 }
