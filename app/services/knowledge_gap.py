@@ -7,6 +7,11 @@ from dataclasses import dataclass
 from app.analytics import get_chat_interactions
 from app.services.confidence import ConfidenceLevel
 from app.services.verification import VerificationStatus
+from app.services.gap_ranking import (
+    KnowledgeGap,
+    build_knowledge_gap,
+    rank_gap,
+)
 
 
 @dataclass(frozen=True)
@@ -163,3 +168,19 @@ def get_topic_metrics() -> list[TopicMetrics]:
 
     rows = get_chat_interactions()
     return aggregate_topic_metrics(rows)
+
+
+def get_knowledge_gaps() -> list[KnowledgeGap]:
+    """
+    Transform aggregated topic metrics into ranked knowledge gaps.
+    """
+
+    metrics = get_topic_metrics()
+
+    return [
+        build_knowledge_gap(
+            metric,
+            rank_gap(metric),
+        )
+        for metric in metrics
+    ]
