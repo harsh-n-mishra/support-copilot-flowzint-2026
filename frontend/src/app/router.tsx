@@ -3,7 +3,7 @@ import App from "./App";
 import { DashboardLayout } from "../layouts/DashboardLayout";
 import { LandingLayout } from "../layouts/LandingLayout";
 import { AIInsightsPage } from "../pages/AIInsights/AIInsightsPage";
-import { AnalyticsDashboard } from "../pages/Analytics/AnalyticsPage";
+import { AnalyticsPage } from "../pages/Analytics/AnalyticsPage";
 import { DashboardPage } from "../pages/Dashboard/DashboardPage";
 import { KnowledgeGapPage } from "../pages/KnowledgeGaps/KnowledgeGapPage";
 import { LandingPage } from "../pages/Landing/LandingPage";
@@ -61,7 +61,7 @@ function renderRoute(path: string) {
     case "/analytics":
       return (
         <DashboardLayout currentPath={path}>
-          <AnalyticsDashboard analytics={null} loading={false} error={null} />
+          <AnalyticsPage />
         </DashboardLayout>
       );
     case "/knowledge-gaps":

@@ -1,3 +1,2 @@
-export function FailedQueriesTable() {
-  return null;
-}
+import { Card } from "../../components/ui/Card";import { DataTable } from "../../components/tables/DataTable";import { getAnalyticsModel } from "./selectors";
+export function FailedQueriesTable(){const {analytics}=getAnalyticsModel();return <Card title="Failed Queries" subtitle="Questions with low answer success" variant="glass"><DataTable searchable pageSize={5} data={analytics.topFailedQuestions as unknown as Record<string,unknown>[]} columns={[{key:"question",header:"Question",sortable:true},{key:"count",header:"Count",sortable:true},{key:"failureRate",header:"Failure Rate",cell:r=>`${r.failureRate}%`}]} /></Card>}

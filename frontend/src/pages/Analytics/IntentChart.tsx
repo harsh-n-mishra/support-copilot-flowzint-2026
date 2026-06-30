@@ -1,3 +1,2 @@
-export function IntentChart() {
-  return null;
-}
+import { ChartCard } from "../../components/cards/ChartCard";import { DonutChart, BarChart } from "../../components/charts";import { getAnalyticsModel } from "./selectors";
+export function IntentChart(){const {analytics}=getAnalyticsModel();return <section className="grid gap-4 xl:grid-cols-2"><ChartCard title="Intent Distribution" variant="glass"><div className="flex justify-center"><DonutChart data={analytics.intentDistribution} centerLabel={analytics.totals.conversations.toLocaleString()} totalLabel="Total chats" /></div></ChartCard><ChartCard title="Top Intents" variant="glass"><BarChart data={analytics.topIntents.map(i=>({label:i.intent,value:i.count}))} series={[{key:"value",color:"#a78bfa"}]} layout="horizontal" /></ChartCard></section>}

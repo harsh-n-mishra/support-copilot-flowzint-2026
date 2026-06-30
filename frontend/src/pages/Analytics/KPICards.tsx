@@ -1,3 +1,3 @@
-export function KPICards() {
-  return null;
-}
+import { MetricCard } from "../../components/cards/MetricCard";
+import { getAnalyticsModel } from "./selectors";
+export function KPICards(){const {analytics}=getAnalyticsModel();const t=analytics.totals;return <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><MetricCard label="Conversation Volume" value={t.conversations.toLocaleString()} change="+9.7%" changeTone="positive" icon={"☰"}/><MetricCard label="Escalations" value={t.escalations.toLocaleString()} change="-3.1%" changeTone="positive" icon={"!"}/><MetricCard label="Avg Confidence" value={`${t.averageConfidence}%`} change="+3.8%" changeTone="positive" icon={"◆"}/><MetricCard label="Knowledge Gaps" value={t.knowledgeGaps} change="+12 under review" icon={"▦"}/></section>}

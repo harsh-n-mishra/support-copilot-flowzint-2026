@@ -1,3 +1,2 @@
-export function ConfidenceChart() {
-  return null;
-}
+import { ChartCard } from "../../components/cards/ChartCard";import { DonutChart, LineChart } from "../../components/charts";import { getAnalyticsModel } from "./selectors";
+export function ConfidenceChart(){const {analytics}=getAnalyticsModel();return <section className="grid gap-4 xl:grid-cols-2"><ChartCard title="Confidence Distribution" variant="glass"><div className="flex justify-center"><DonutChart data={analytics.confidenceDistribution} centerLabel={`${analytics.totals.averageConfidence}%`} totalLabel="Avg confidence" /></div></ChartCard><ChartCard title="Confidence History" variant="glass"><LineChart data={analytics.monthly} series={[{key:"confidence",label:"Confidence",color:"#22c55e"}]} /></ChartCard></section>}
