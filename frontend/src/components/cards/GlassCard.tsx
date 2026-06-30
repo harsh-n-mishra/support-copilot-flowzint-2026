@@ -1,3 +1,1 @@
-export function GlassCard() {
-  return null;
-}
+export { GlassCard } from "../ui/GlassCard";

@@ -1,0 +1,1 @@
+import { Badge } from "../ui/Badge";export function HealthBadge({value}:{value:number}){return <Badge variant={value>=85?"success":value>=65?"warning":"danger"}>{value>=85?"Healthy":value>=65?"Watch":"At risk"}</Badge>}

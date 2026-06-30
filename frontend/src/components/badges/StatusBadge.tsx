@@ -1,3 +1,1 @@
-export function StatusBadge() {
-  return null;
-}
+import { Badge, type BadgeVariant } from "../ui/Badge";const map:Record<string,BadgeVariant>={open:"success",resolved:"success",healthy:"success",pending:"warning",escalated:"warning",failed:"danger",critical:"danger"};export function StatusBadge({status}:{status:string}){return <Badge variant={map[status.toLowerCase()]??"neutral"}>{status}</Badge>}

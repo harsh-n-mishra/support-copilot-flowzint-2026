@@ -1,3 +1,1 @@
-export function ChartCard() {
-  return null;
-}
+import { Card, type CardProps } from "../ui/Card";import { Button } from "../ui/Button";export interface ChartCardProps extends CardProps{exportable?:boolean;chartHeight?:number}export function ChartCard({title,subtitle,actions,exportable,children,chartHeight=260,...props}:ChartCardProps){return <Card title={title} subtitle={subtitle} actions={<div className="flex items-center gap-2">{actions}{exportable&&<Button variant="ghost" size="sm">Export</Button>}</div>} {...props}><div className="min-w-0" style={{minHeight:chartHeight}}>{children}</div></Card>}

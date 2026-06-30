@@ -1,3 +1,1 @@
-export function Tooltip() {
-  return null;
-}
+import { useState } from "react";export function Tooltip({content,children}:{content:React.ReactNode;children:React.ReactElement}){const[show,setShow]=useState(false);return <span className="relative inline-flex" onMouseEnter={()=>setShow(true)} onMouseLeave={()=>setShow(false)} onFocus={()=>setShow(true)} onBlur={()=>setShow(false)}>{children}{show&&<span role="tooltip" className="absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-[var(--color-surface)] px-2 py-1 text-xs shadow-[var(--shadow-md)] border border-[var(--color-border)]">{content}</span>}</span>};export const TooltipExample=()=> <Tooltip content="Helpful info"><button>Hover</button></Tooltip>;

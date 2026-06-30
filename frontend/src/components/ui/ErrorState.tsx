@@ -1,3 +1,1 @@
-export function ErrorState() {
-  return null;
-}
+import { Button } from "./Button";export interface ErrorStateProps{icon?:React.ReactNode;message:string;retry?:()=>void;}export function ErrorState({icon,message,retry}:ErrorStateProps){return <div role="alert" className="rounded-[var(--radius-xl)] border border-rose-400/20 bg-rose-500/10 p-5 text-center"><div className="mb-2 text-2xl text-[var(--color-danger)]">{icon??"⚠"}</div><p className="text-sm text-[var(--color-text)]">{message}</p>{retry&&<Button className="mt-4" variant="destructive" onClick={retry}>Retry</Button>}</div>};export const ErrorStateExample=()=> <ErrorState message="Something went wrong" retry={()=>{}}/>;

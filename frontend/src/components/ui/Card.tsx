@@ -1,3 +1,7 @@
-export function Card() {
-  return null;
-}
+import { cn } from "../../utils/cn";
+import { Skeleton } from "./Skeleton";
+export type CardVariant="default"|"outlined"|"elevated"|"glass"|"interactive";
+export interface CardProps extends React.HTMLAttributes<HTMLDivElement>{variant?:CardVariant;title?:React.ReactNode;subtitle?:React.ReactNode;actions?:React.ReactNode;footer?:React.ReactNode;loading?:boolean;}
+const variants:Record<CardVariant,string>={default:"bg-[var(--color-surface-muted)] border border-[var(--color-border)]",outlined:"bg-transparent border border-[var(--color-border-strong)]",elevated:"bg-[var(--color-surface)] shadow-[var(--shadow-md)] border border-[var(--color-border)]",glass:"bg-white/[0.06] backdrop-blur-xl border border-white/10 shadow-[var(--shadow-lg)]",interactive:"bg-[var(--color-surface-muted)] border border-[var(--color-border)] hover:-translate-y-0.5 hover:border-[var(--color-border-strong)] hover:shadow-[var(--shadow-glow)] cursor-pointer"};
+export function Card({className,variant="default",title,subtitle,actions,footer,loading,children,...props}:CardProps){return <div className={cn("rounded-[var(--radius-xl)] p-5 transition-all duration-200",variants[variant],className)} {...props}>{(title||subtitle||actions)&&<div className="mb-4 flex items-start justify-between gap-4"><div>{title&&<h3 className="text-sm font-semibold text-[var(--color-text)]">{title}</h3>}{subtitle&&<p className="mt-1 text-xs text-[var(--color-text-muted)]">{subtitle}</p>}</div>{actions}</div>}{loading?<Skeleton variant="text" lines={4}/>:children}{footer&&<div className="mt-5 border-t border-[var(--color-border)] pt-4">{footer}</div>}</div>}
+export const CardExample=()=> <Card title="Reusable card" subtitle="Glass-ready container" actions={<button>•••</button>} footer="Footer">Content</Card>;

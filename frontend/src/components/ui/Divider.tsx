@@ -1,0 +1,1 @@
+import { cn } from "../../utils/cn";export function Divider({orientation="horizontal",className}:{orientation?:"horizontal"|"vertical";className?:string}){return <div role="separator" aria-orientation={orientation} className={cn(orientation==="horizontal"?"h-px w-full":"h-full w-px","bg-[var(--color-border)]",className)}/>};export const DividerExample=()=> <Divider/>;

@@ -1,3 +1,5 @@
+import { Placeholder } from "../../components/ui/Placeholder";
+
 export function LandingPage() {
-  return null;
+  return <Placeholder title="Landing" />;
 }

@@ -1,3 +1,2 @@
-export function EscalationTable() {
-  return null;
-}
+import { Card } from "../../components/ui/Card";import { DataTable } from "../../components/tables/DataTable";import { StatusBadge } from "../../components/badges/StatusBadge";import { getAnalyticsModel } from "./selectors";
+export function EscalationTable(){const {analytics}=getAnalyticsModel();return <Card title="Escalated Conversations" variant="glass"><DataTable searchable pageSize={5} data={analytics.escalatedConversations as unknown as Record<string,unknown>[]} columns={[{key:"conversationId",header:"Conversation"},{key:"intent",header:"Intent"},{key:"confidence",header:"Confidence",cell:r=>`${r.confidence}%`},{key:"status",header:"Status",cell:r=><StatusBadge status={String(r.status)} />},{key:"timestamp",header:"Time",cell:r=>new Date(String(r.timestamp)).toLocaleString()}]} /></Card>}

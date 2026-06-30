@@ -1,80 +1,12 @@
-import type { AnalyticsResponse } from "../../types/chat";
+import { Card } from "../../components/ui/Card";
+import { BarChart } from "../../components/charts";
+import { KPICards } from "./KPICards";
+import { TrendCharts } from "./TrendCharts";
+import { IntentChart } from "./IntentChart";
+import { ConfidenceChart } from "./ConfidenceChart";
+import { FailedQueriesTable } from "./FailedQueriesTable";
+import { EscalationTable } from "./EscalationTable";
+import { getAnalyticsModel } from "./selectors";
 
-type Props = {
-  analytics: AnalyticsResponse | null;
-  loading: boolean;
-  error: string | null;
-};
-
-function pct(value: number): string {
-  return `${(value * 100).toFixed(1)}%`;
-}
-
-export function AnalyticsDashboard({ analytics, loading, error }: Props) {
-  if (loading) {
-    return <div className="p-4 text-slate-300">Loading analytics...</div>;
-  }
-
-  if (error) {
-    return <div className="p-4 text-rose-300">{error}</div>;
-  }
-
-  if (!analytics) {
-    return <div className="p-4 text-slate-300">No analytics data yet.</div>;
-  }
-
-  return (
-    <div className="space-y-4 p-4">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <div className="rounded-lg border border-slate-700 bg-slate-800 p-4">
-          <div className="text-xs text-slate-400">Total Chats</div>
-          <div className="text-2xl font-semibold">{analytics.total_chats}</div>
-        </div>
-        <div className="rounded-lg border border-slate-700 bg-slate-800 p-4">
-          <div className="text-xs text-slate-400">Handoff Rate</div>
-          <div className="text-2xl font-semibold">{pct(analytics.handoff_rate)}</div>
-        </div>
-        <div className="rounded-lg border border-slate-700 bg-slate-800 p-4">
-          <div className="text-xs text-slate-400">Avg Retrieval Score</div>
-          <div className="text-2xl font-semibold">{analytics.avg_retrieval_score.toFixed(3)}</div>
-        </div>
-      </div>
-
-      <div className="rounded-lg border border-slate-700 bg-slate-800 p-4">
-        <h2 className="mb-2 text-sm font-semibold">Top Intents</h2>
-        <ul className="space-y-1 text-sm text-slate-300">
-          {analytics.top_intents.map((item) => (
-            <li key={item.intent} className="flex justify-between">
-              <span>{item.intent}</span>
-              <span>{item.count}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="rounded-lg border border-slate-700 bg-slate-800 p-4">
-        <h2 className="mb-2 text-sm font-semibold">Failed Queries</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm text-slate-300">
-            <thead className="text-xs uppercase text-slate-400">
-              <tr>
-                <th className="pr-4">Question</th>
-                <th className="pr-4">Retrieval Score</th>
-                <th>Timestamp</th>
-              </tr>
-            </thead>
-            <tbody>
-              {analytics.failed_queries.map((fq, idx) => (
-                <tr key={`${fq.timestamp}-${idx}`} className="border-t border-slate-700">
-                  <td className="py-2 pr-4">{fq.question}</td>
-                  <td className="py-2 pr-4">{fq.retrieval_score.toFixed(3)}</td>
-                  <td className="py-2">{new Date(fq.timestamp).toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
+export function AnalyticsPage(){const {analytics}=getAnalyticsModel();return <main className="space-y-5" aria-label="Analytics page"><header className="rounded-2xl border border-white/10 bg-white/[0.06] p-5 backdrop-blur-xl"><p className="text-xs uppercase tracking-[0.25em] text-violet-200">Operational analytics</p><h1 className="mt-2 text-2xl font-semibold">Analytics</h1><p className="mt-1 text-sm text-[var(--color-text-muted)]">Deep insights into support operations, confidence, escalations, failed queries, and trends.</p></header><KPICards/><TrendCharts/><IntentChart/><ConfidenceChart/><section className="grid gap-4 xl:grid-cols-2"><Card title="Top Questions" variant="glass"><BarChart data={analytics.frequentlyAskedQuestions.slice(0,8).map(q=>({label:q.question,value:q.count}))} series={[{key:"value",color:"#8b5cf6"}]} layout="horizontal" /></Card><Card title="Traffic Heatmap" subtitle="Hourly intensity by day" variant="glass"><div className="grid gap-1 overflow-x-auto" style={{gridTemplateColumns:"repeat(24,minmax(1.25rem,1fr))"}} aria-label="Weekly traffic heatmap">{analytics.weeklyHeatmap.flat().map((c)=><span key={`${c.day}-${c.hour}`} title={`Day ${c.day + 1}, ${c.hour}:00`} className="h-5 min-w-5 rounded" style={{backgroundColor:`rgba(139,92,246,${Math.min(c.value/120,.9)})`}} />)}</div></Card></section><section className="grid gap-4 xl:grid-cols-2"><FailedQueriesTable/><EscalationTable/></section></main>}
+export const AnalyticsDashboard = AnalyticsPage;

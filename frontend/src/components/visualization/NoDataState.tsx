@@ -1,0 +1,1 @@
+import { EmptyState, type EmptyStateProps } from "../ui/EmptyState";export function NoDataState(props:Partial<EmptyStateProps>){return <EmptyState title="No data available" description="Try adjusting the filters or date range." {...props}/>}

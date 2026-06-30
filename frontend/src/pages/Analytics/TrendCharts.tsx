@@ -1,3 +1,4 @@
-export function TrendCharts() {
-  return null;
-}
+import { ChartCard } from "../../components/cards/ChartCard";
+import { LineChart, AreaChart, BarChart } from "../../components/charts";
+import { getAnalyticsModel } from "./selectors";
+export function TrendCharts(){const {analytics,supportHealth}=getAnalyticsModel();return <section className="grid gap-4 xl:grid-cols-2"><ChartCard title="Conversation Volume" subtitle="Daily operations" variant="glass"><LineChart data={analytics.daily} series={[{key:"conversations",label:"Conversations"},{key:"escalations",label:"Escalations",color:"#fb7185"}]} /></ChartCard><ChartCard title="Weekly Trends" variant="glass"><AreaChart data={analytics.weekly} series={[{key:"conversations",label:"Conversations",color:"#8b5cf6"},{key:"resolutionTime",label:"Resolution time",color:"#22c55e"}]} /></ChartCard><ChartCard title="Monthly Trends" variant="glass"><LineChart data={analytics.monthly} series={[{key:"conversations",label:"Conversations"},{key:"confidence",label:"Confidence",color:"#22c55e"}]} /></ChartCard><ChartCard title="Support Health Comparison" variant="glass"><BarChart data={supportHealth.healthBreakdown} series={[{key:"value",label:"Score",color:"#60a5fa"}]} layout="horizontal" /></ChartCard></section>}
