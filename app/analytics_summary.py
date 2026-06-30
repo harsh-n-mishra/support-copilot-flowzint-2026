@@ -5,85 +5,11 @@ from collections import Counter
 from app.analytics import get_chat_interactions
 from app.services.confidence import ConfidenceLevel
 
-
 CONFIDENCE_WEIGHTS = {
     ConfidenceLevel.HIGH: 1.0,
     ConfidenceLevel.MEDIUM: 0.5,
     ConfidenceLevel.LOW: 0.0,
 }
-
-
-def get_support_health() -> dict:
-    """
-    Compute support-health metrics from recorded chat interactions.
-    """
-
-    rows = get_chat_interactions()
-
-    total = len(rows)
-
-    if total == 0:
-        return {
-            "total_interactions": 0,
-            "average_confidence": 0.0,
-            "unanswered_rate": 0.0,
-            "handoff_rate": 0.0,
-            "average_response_time_ms": 0.0,
-        }
-
-    average_confidence = (
-        sum(
-            CONFIDENCE_WEIGHTS[
-                ConfidenceLevel(row["confidence"])
-            ]
-            for row in rows
-        )
-        / total
-    )
-
-    unanswered_rate = (
-        sum(
-            not row["answered"]
-            for row in rows
-        )
-        / total
-    )
-
-    handoff_rate = (
-        sum(
-            row["handoff_triggered"]
-            for row in rows
-        )
-        / total
-    )
-
-    average_response_time_ms = (
-        sum(
-            row["response_time_ms"]
-            for row in rows
-        )
-        / total
-    )
-
-    return {
-        "total_interactions": total,
-        "average_confidence": round(
-            average_confidence,
-            4,
-        ),
-        "unanswered_rate": round(
-            unanswered_rate,
-            4,
-        ),
-        "handoff_rate": round(
-            handoff_rate,
-            4,
-        ),
-        "average_response_time_ms": round(
-            average_response_time_ms,
-            2,
-        ),
-    }
 
 
 def get_analytics_summary() -> dict:

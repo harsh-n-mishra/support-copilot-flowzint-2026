@@ -6,6 +6,9 @@ from app.services.gap_ranking import (
     GapPriority,
     GapSeverity,
 )
+from app.services.support_health import (
+    HealthCategory,
+)
 
 
 class ChatRequest(BaseModel):
@@ -96,12 +99,19 @@ class KnowledgeGapResponse(BaseModel):
     missing_documentation: bool
 
 
+class HealthDriversResponse(BaseModel):
+    retrieval_quality: float
+    verification_quality: float
+    resolution_quality: float
+    escalation_management: float
+
+
+
 class SupportHealthResponse(BaseModel):
-    total_interactions: int
-    average_confidence: float
-    unanswered_rate: float
-    handoff_rate: float
-    average_response_time_ms: float
+    score: int
+    category: HealthCategory
+    drivers: HealthDriversResponse
+    summary: str
 
 
 class AnalyticsSummaryResponse(BaseModel):

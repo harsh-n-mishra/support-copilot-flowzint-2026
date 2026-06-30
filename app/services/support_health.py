@@ -3,6 +3,7 @@ from enum import Enum
 
 from app.services.confidence import ConfidenceLevel
 from app.services.verification import VerificationStatus
+from app.analytics import get_chat_interactions
 
 RETRIEVAL_WEIGHT = 30
 VERIFICATION_WEIGHT = 25
@@ -187,3 +188,25 @@ def _generate_summary(
         "Support quality is critical. Frequent low-evidence answers "
         "and escalations require immediate attention."
     )
+
+
+def _to_health_interaction(row: dict) -> dict:
+    return {
+        "confidence": ConfidenceLevel(row["confidence"]),
+        "verification": VerificationStatus(
+            row["verification_status"]
+        ),
+        "answered": bool(row["answered"]),
+        "handoff": bool(row["handoff_triggered"]),
+    }
+
+
+def get_support_health() -> SupportHealthScore:
+    rows = get_chat_interactions()
+
+    interactions = [
+        _to_health_interaction(row)
+        for row in rows
+    ]
+
+    return calculate_support_health(interactions)

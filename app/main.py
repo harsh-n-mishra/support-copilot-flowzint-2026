@@ -12,6 +12,12 @@ from app.analytics import (
 from app.analytics_summary import (
     get_analytics,
     get_analytics_summary,
+)
+from app.services.support_health import (
+    RETRIEVAL_WEIGHT,
+    VERIFICATION_WEIGHT,
+    RESOLUTION_WEIGHT,
+    ESCALATION_WEIGHT,
     get_support_health,
 )
 from app.config import settings
@@ -27,6 +33,7 @@ from app.schemas import (
     SourceChunk,
     SupportHealthResponse,
     VerificationResponse,
+    HealthDriversResponse,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -167,11 +174,33 @@ def analytics() -> AnalyticsResponse:
         ) from exc
 
 
-@app.get("/support-health", response_model=SupportHealthResponse,)
+@app.get("/support-health", response_model=SupportHealthResponse)
 def support_health() -> SupportHealthResponse:
     try:
+        score = get_support_health()
+
         return SupportHealthResponse(
-            **get_support_health()
+            score=score.score,
+            category=score.category,
+            drivers=HealthDriversResponse(
+                retrieval_quality=(
+                    score.drivers.retrieval_quality
+                    * RETRIEVAL_WEIGHT
+                ),
+                verification_quality=(
+                    score.drivers.verification_quality
+                    * VERIFICATION_WEIGHT
+                ),
+                resolution_quality=(
+                    score.drivers.resolution_quality
+                    * RESOLUTION_WEIGHT
+                ),
+                escalation_management=(
+                    score.drivers.escalation_management
+                    * ESCALATION_WEIGHT
+                ),
+            ),
+            summary=score.summary,
         )
     except Exception as exc:
         raise HTTPException(

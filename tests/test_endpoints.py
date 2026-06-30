@@ -1,6 +1,11 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.services.support_health import (
+    HealthCategory,
+    HealthDrivers,
+    SupportHealthScore,
+)
 
 client = TestClient(app)
 
@@ -8,26 +13,29 @@ client = TestClient(app)
 def test_support_health_endpoint(monkeypatch):
     monkeypatch.setattr(
         "app.main.get_support_health",
-        lambda: {
-            "total_interactions": 4,
-            "average_confidence": 0.625,
-            "unanswered_rate": 0.5,
-            "handoff_rate": 0.5,
-            "average_response_time_ms": 250.0,
-        },
+        lambda: SupportHealthScore(
+            score=91,
+            category=HealthCategory.EXCELLENT,
+            drivers=HealthDrivers(
+                retrieval_quality=0.9,
+                verification_quality=0.9,
+                resolution_quality=1.0,
+                escalation_management=1.0,
+            ),
+            summary="Support quality is excellent.",
+        ),
     )
 
     response = client.get("/support-health")
 
     assert response.status_code == 200
 
-    assert response.json() == {
-        "total_interactions": 4,
-        "average_confidence": 0.625,
-        "unanswered_rate": 0.5,
-        "handoff_rate": 0.5,
-        "average_response_time_ms": 250.0,
-    }
+    body = response.json()
+
+    assert body["score"] == 91
+    assert body["category"] == "EXCELLENT"
+    assert "drivers" in body
+    assert body["summary"] == "Support quality is excellent."
 
 
 def test_analytics_summary_endpoint(monkeypatch):

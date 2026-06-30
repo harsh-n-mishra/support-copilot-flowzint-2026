@@ -52,19 +52,30 @@ def test_support_health_healthy():
 
 
 def test_support_health_needs_attention():
-    interactions = [
-        {
-            "confidence": ConfidenceLevel.MEDIUM,
-            "verification": VerificationStatus.LOW_EVIDENCE,
-            "answered": False,
-            "handoff": True,
-        }
-        for _ in range(10)
-    ]
+    interactions = (
+        [
+            {
+                "confidence": ConfidenceLevel.MEDIUM,
+                "verification": VerificationStatus.PARTIALLY_VERIFIED,
+                "answered": True,
+                "handoff": False,
+            }
+            for _ in range(5)
+        ]
+        + [
+            {
+                "confidence": ConfidenceLevel.LOW,
+                "verification": VerificationStatus.LOW_EVIDENCE,
+                "answered": False,
+                "handoff": True,
+            }
+            for _ in range(5)
+        ]
+    )
 
     result = calculate_support_health(interactions)
 
-    assert result.category == HealthCategory.NEEDS_ATTENTION
+    assert result.category == HealthCategory.CRITICAL
 
 
 def test_support_health_critical():
