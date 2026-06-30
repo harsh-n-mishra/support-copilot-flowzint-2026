@@ -100,7 +100,8 @@ def get_chat_interactions() -> list[sqlite3.Row]:
                 question,
                 retrieval_score,
                 confidence,
-                answered
+                answered,
+                verification_status
             FROM chat_analytics
             """
         ).fetchall()
