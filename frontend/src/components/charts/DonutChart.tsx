@@ -1,3 +1,1 @@
-export function DonutChart() {
-  return null;
-}
+import { PieChart, type PieDatum } from "./PieChart";export function DonutChart({data,centerLabel,totalLabel,size=190}:{data:PieDatum[];centerLabel?:string;totalLabel?:string;size?:number}){const total=data.reduce((s,d)=>s+d.value,0);return <div className="relative inline-block"><PieChart data={data} size={size}/><div className="pointer-events-none absolute inset-0 grid place-items-center"><div className="rounded-full bg-[var(--color-background)] p-5 text-center"><div className="text-lg font-semibold">{centerLabel??total}</div><div className="text-[10px] text-[var(--color-text-muted)]">{totalLabel??"Total"}</div></div></div></div>}

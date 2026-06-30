@@ -1,3 +1,1 @@
-export function EmptyState() {
-  return null;
-}
+export interface EmptyStateProps{icon?:React.ReactNode;title:string;description?:React.ReactNode;actions?:React.ReactNode;}export function EmptyState({icon,title,description,actions}:EmptyStateProps){return <div className="grid place-items-center rounded-[var(--radius-xl)] border border-dashed border-[var(--color-border)] p-8 text-center"><div className="mb-3 text-3xl text-[var(--color-accent)]">{icon??"◌"}</div><h3 className="font-semibold text-[var(--color-text)]">{title}</h3>{description&&<p className="mt-1 max-w-sm text-sm text-[var(--color-text-muted)]">{description}</p>}{actions&&<div className="mt-4">{actions}</div>}</div>};export const EmptyStateExample=()=> <EmptyState title="No results" description="Try changing filters."/>;

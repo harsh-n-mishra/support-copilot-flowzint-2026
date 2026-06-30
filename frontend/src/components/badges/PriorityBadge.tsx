@@ -1,3 +1,1 @@
-export function PriorityBadge() {
-  return null;
-}
+import { Badge } from "../ui/Badge";export function PriorityBadge({priority}:{priority:string}){const p=priority.toLowerCase();return <Badge variant={p.includes("high")?"danger":p.includes("medium")?"warning":"success"}>{priority}</Badge>}

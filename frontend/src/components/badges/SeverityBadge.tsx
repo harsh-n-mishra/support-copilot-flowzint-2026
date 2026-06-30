@@ -1,0 +1,1 @@
+import { Badge } from "../ui/Badge";export function SeverityBadge({severity}:{severity:string}){const s=severity.toLowerCase();return <Badge variant={s.includes("critical")||s.includes("high")?"danger":s.includes("medium")?"warning":"neutral"}>{severity}</Badge>}

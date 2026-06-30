@@ -1,0 +1,1 @@
+import { CircularProgress } from "./CircularProgress";export function HealthMeter({value}:{value:number}){return <CircularProgress value={value} color={value>80?"#22c55e":"#f59e0b"} label={`${value}`} />}

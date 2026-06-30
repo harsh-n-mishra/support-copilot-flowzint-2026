@@ -1,0 +1,1 @@
+import { EmptyState } from "../ui/EmptyState";export function EmptyChart({title="No chart data"}:{title?:string}){return <EmptyState title={title} description="Data will appear here when available."/>}

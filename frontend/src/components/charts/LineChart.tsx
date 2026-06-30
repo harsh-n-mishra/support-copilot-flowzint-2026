@@ -1,3 +1,5 @@
-export function LineChart() {
-  return null;
-}
+import { cn } from "../../utils/cn";
+import { chartColors, type ChartDatum, type ChartSeries, pathFromPoints, points } from "./chartUtils";
+export interface LineChartProps { data: ChartDatum[]; series: ChartSeries[]; xKey?: string; height?: number; showLegend?: boolean; className?: string; ariaLabel?: string; }
+export function LineChart({ data, series, height = 220, showLegend = true, className, ariaLabel = "Line chart" }: LineChartProps) { const width = 640; return <figure className={cn("w-full", className)}><svg role="img" aria-label={ariaLabel} viewBox={`0 0 ${width} ${height}`} className="h-auto w-full overflow-visible"><defs>{series.map((s,i)=><linearGradient key={s.key} id={`line-${s.key}`} x1="0" x2="1"><stop stopColor={s.color??chartColors[i%chartColors.length]} stopOpacity="1"/><stop offset="1" stopColor={s.color??chartColors[i%chartColors.length]} stopOpacity=".35"/></linearGradient>)}</defs>{series.map((s,i)=><path key={s.key} d={pathFromPoints(points(data,s.key,width,height))} fill="none" stroke={`url(#line-${s.key})`} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_12px_rgba(139,92,246,.35)] [stroke-dasharray:1000] [animation:dash_900ms_ease-out]" />)}</svg>{showLegend&&<figcaption className="mt-3 flex flex-wrap gap-3 text-xs text-[var(--color-text-muted)]">{series.map((s,i)=><span key={s.key} className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{background:s.color??chartColors[i%chartColors.length]}} />{s.label??s.key}</span>)}</figcaption>}</figure>}
+export const LineChartExample=()=> <LineChart data={[{x:"A",value:10},{x:"B",value:18}]} series={[{key:"value",label:"Value"}]}/>;

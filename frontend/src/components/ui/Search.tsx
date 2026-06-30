@@ -1,3 +1,3 @@
-export function Search() {
-  return null;
-}
+import { forwardRef } from "react";import { Input, type InputProps } from "./Input";import { Spinner } from "./Loading";import { Button } from "./Button";
+export interface SearchProps extends Omit<InputProps,"type"|"leftIcon"|"rightIcon">{loading?:boolean;shortcut?:string;onClear?:()=>void;}
+export const Search=forwardRef<HTMLInputElement,SearchProps>(({loading,shortcut="/",onClear,value,...props},ref)=><Input ref={ref} type="search" value={value} leftIcon={<span aria-hidden>⌕</span>} rightIcon={loading?<Spinner size="sm"/>:<span className="flex items-center gap-2">{value&&onClear&&<Button aria-label="Clear search" variant="ghost" size="xs" iconOnly onClick={onClear}>×</Button>}<kbd className="rounded border border-[var(--color-border)] px-1 text-[10px] text-[var(--color-text-muted)]">{shortcut}</kbd></span>} aria-keyshortcuts={shortcut} {...props}/>);Search.displayName="Search";export const SearchExample=()=> <Search label="Search" placeholder="Search all content" shortcut="⌘K"/>;
