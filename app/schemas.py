@@ -106,7 +106,6 @@ class HealthDriversResponse(BaseModel):
     escalation_management: float
 
 
-
 class SupportHealthResponse(BaseModel):
     score: int
     category: HealthCategory
@@ -116,6 +115,7 @@ class SupportHealthResponse(BaseModel):
 
 class AnalyticsSummaryResponse(BaseModel):
     total_interactions: int
+    support_health: SupportHealthResponse
     top_questions: list[str]
     top_failures: list[str]
     average_retrieval_score: float

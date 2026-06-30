@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from collections import Counter
 
+from dataclasses import dataclass
+
+from app.services.support_health import (
+    SupportHealthScore,
+    get_support_health,
+)
 from app.analytics import get_chat_interactions
 from app.services.confidence import ConfidenceLevel
 
@@ -12,7 +18,16 @@ CONFIDENCE_WEIGHTS = {
 }
 
 
-def get_analytics_summary() -> dict:
+@dataclass(frozen=True)
+class AnalyticsSummary:
+    total_interactions: int
+    top_questions: list[str]
+    top_failures: list[str]
+    average_retrieval_score: float
+    support_health: SupportHealthScore
+
+
+def get_analytics_summary() -> AnalyticsSummary:
     """
     Compute analytics dashboard summary.
     """
@@ -22,12 +37,13 @@ def get_analytics_summary() -> dict:
     total = len(rows)
 
     if total == 0:
-        return {
-            "total_interactions": 0,
-            "top_questions": [],
-            "top_failures": [],
-            "average_retrieval_score": 0.0,
-        }
+        return AnalyticsSummary(
+            total_interactions=0,
+            top_questions=[],
+            top_failures=[],
+            average_retrieval_score=0.0,
+            support_health=get_support_health(),
+        )
 
     average_retrieval_score = (
         sum(
@@ -54,15 +70,18 @@ def get_analytics_summary() -> dict:
         ).most_common(5)
     ]
 
-    return {
-        "total_interactions": total,
-        "top_questions": top_questions,
-        "top_failures": top_failures,
-        "average_retrieval_score": round(
+    health = get_support_health()
+
+    return AnalyticsSummary(
+        total_interactions=total,
+        top_questions=top_questions,
+        top_failures=top_failures,
+        average_retrieval_score=round(
             average_retrieval_score,
             4,
         ),
-    }
+        support_health=health,
+    )
 
 
 def get_analytics() -> dict:

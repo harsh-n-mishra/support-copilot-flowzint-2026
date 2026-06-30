@@ -4,7 +4,12 @@ from app.analytics_summary import (
     get_analytics,
     get_analytics_summary,
 )
-from app.services.support_health import get_support_health
+from app.services.support_health import (
+    HealthCategory,
+    HealthDrivers,
+    SupportHealthScore,
+    get_support_health,
+)
 
 
 @pytest.fixture
@@ -77,12 +82,50 @@ def test_analytics_summary(sample_rows, monkeypatch):
         lambda: sample_rows,
     )
 
+    monkeypatch.setattr(
+        "app.services.support_health.get_chat_interactions",
+        lambda: sample_rows,
+    )
+
     result = get_analytics_summary()
 
-    assert result["total_interactions"] == 4
-    assert result["top_questions"][0] == "Forgot password"
-    assert result["top_failures"][0] == "Refund request"
-    assert result["average_retrieval_score"] == 0.675
+    assert result.total_interactions == 4
+    assert result.top_questions[0] == "Forgot password"
+    assert result.top_failures[0] == "Refund request"
+    assert result.average_retrieval_score == 0.675
+
+
+def test_analytics_summary_composes_support_health(
+    sample_rows,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        "app.analytics_summary.get_chat_interactions",
+        lambda: sample_rows,
+    )
+
+    monkeypatch.setattr(
+        "app.analytics_summary.get_support_health",
+        lambda: SupportHealthScore(
+            score=91,
+            category=HealthCategory.EXCELLENT,
+            drivers=HealthDrivers(
+                retrieval_quality=0.9,
+                verification_quality=0.9,
+                resolution_quality=1.0,
+                escalation_management=1.0,
+            ),
+            summary="Support quality is excellent.",
+        ),
+    )
+
+    summary = get_analytics_summary()
+
+    assert summary.support_health.score == 91
+    assert (
+        summary.support_health.category
+        == HealthCategory.EXCELLENT
+    )
 
 
 def test_operational_analytics(sample_rows, monkeypatch):

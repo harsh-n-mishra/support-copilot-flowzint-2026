@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.analytics_summary import AnalyticsSummary
 from app.services.support_health import (
     HealthCategory,
     HealthDrivers,
@@ -41,33 +42,55 @@ def test_support_health_endpoint(monkeypatch):
 def test_analytics_summary_endpoint(monkeypatch):
     monkeypatch.setattr(
         "app.main.get_analytics_summary",
-        lambda: {
-            "total_interactions": 4,
-            "top_questions": [
+        lambda: AnalyticsSummary(
+            total_interactions=4,
+            top_questions=[
                 "Forgot password",
+            ],
+            top_failures=[
                 "Refund request",
             ],
-            "top_failures": [
-                "Refund request",
-            ],
-            "average_retrieval_score": 0.675,
-        },
+            average_retrieval_score=0.67,
+            support_health=SupportHealthScore(
+                score=91,
+                category=HealthCategory.EXCELLENT,
+                drivers=HealthDrivers(
+                    retrieval_quality=0.9,
+                    verification_quality=0.9,
+                    resolution_quality=1.0,
+                    escalation_management=1.0,
+                ),
+                summary="Support quality is excellent.",
+            ),
+        ),
     )
 
     response = client.get("/analytics-summary")
 
     assert response.status_code == 200
 
-    assert response.json() == {
+    body = response.json()
+
+    assert body == {
         "total_interactions": 4,
+        "support_health": {
+            "score": 91,
+            "category": "EXCELLENT",
+            "drivers": {
+                "retrieval_quality": 27.0,
+                "verification_quality": 22.5,
+                "resolution_quality": 25.0,
+                "escalation_management": 20.0,
+            },
+            "summary": "Support quality is excellent.",
+        },
         "top_questions": [
             "Forgot password",
-            "Refund request",
         ],
         "top_failures": [
             "Refund request",
         ],
-        "average_retrieval_score": 0.675,
+        "average_retrieval_score": 0.67,
     }
 
 

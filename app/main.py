@@ -212,8 +212,37 @@ def support_health() -> SupportHealthResponse:
 @app.get("/analytics-summary", response_model=AnalyticsSummaryResponse)
 def analytics_summary() -> AnalyticsSummaryResponse:
     try:
+        summary = get_analytics_summary()
+        health = summary.support_health
+
         return AnalyticsSummaryResponse(
-            **get_analytics_summary()
+            total_interactions=summary.total_interactions,
+            top_questions=summary.top_questions,
+            top_failures=summary.top_failures,
+            average_retrieval_score=summary.average_retrieval_score,
+            support_health=SupportHealthResponse(
+                score=health.score,
+                category=health.category,
+                drivers=HealthDriversResponse(
+                    retrieval_quality=(
+                        health.drivers.retrieval_quality
+                        * RETRIEVAL_WEIGHT
+                    ),
+                    verification_quality=(
+                        health.drivers.verification_quality
+                        * VERIFICATION_WEIGHT
+                    ),
+                    resolution_quality=(
+                        health.drivers.resolution_quality
+                        * RESOLUTION_WEIGHT
+                    ),
+                    escalation_management=(
+                        health.drivers.escalation_management
+                        * ESCALATION_WEIGHT
+                    ),
+                ),
+                summary=health.summary,
+            ),
         )
     except Exception as exc:
         raise HTTPException(
