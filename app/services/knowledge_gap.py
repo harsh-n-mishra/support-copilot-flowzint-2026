@@ -171,16 +171,10 @@ def get_topic_metrics() -> list[TopicMetrics]:
 
 
 def get_knowledge_gaps() -> list[KnowledgeGap]:
-    """
-    Transform aggregated topic metrics into ranked knowledge gaps.
-    """
-
-    metrics = get_topic_metrics()
-
     return [
         build_knowledge_gap(
             metric,
             rank_gap(metric),
         )
-        for metric in metrics
+        for metric in get_topic_metrics()
     ]

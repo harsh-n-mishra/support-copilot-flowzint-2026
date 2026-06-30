@@ -5,15 +5,19 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.analytics import (
-    get_analytics_dashboard_summary,
-    get_analytics_summary,
-    get_support_health,
     init_analytics_db,
     record_chat_analytics,
+)
+
+from app.analytics_summary import (
+    get_analytics,
+    get_analytics_summary,
+    get_support_health,
 )
 from app.config import settings
 from app.ingest import build_or_refresh_index
 from app.rag import ask_support_question, clear_memory
+from app.services.knowledge_gap import get_knowledge_gaps
 from app.schemas import (
     AnalyticsResponse,
     AnalyticsSummaryResponse,
@@ -153,8 +157,9 @@ def delete_memory(session_id: str) -> dict[str, str]:
 @app.get("/analytics", response_model=AnalyticsResponse)
 def analytics() -> AnalyticsResponse:
     try:
-        summary = get_analytics_summary()
-        return AnalyticsResponse(**summary)
+        return AnalyticsResponse(
+            **get_analytics()
+        )
     except Exception as exc:
         raise HTTPException(
             status_code=500,
@@ -175,11 +180,11 @@ def support_health() -> SupportHealthResponse:
         ) from exc
 
 
-@app.get("/analytics-summary", response_model=AnalyticsSummaryResponse,)
+@app.get("/analytics-summary", response_model=AnalyticsSummaryResponse)
 def analytics_summary() -> AnalyticsSummaryResponse:
     try:
         return AnalyticsSummaryResponse(
-            **get_analytics_dashboard_summary()
+            **get_analytics_summary()
         )
     except Exception as exc:
         raise HTTPException(

@@ -3,7 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
-from app.services.knowledge_gap import TopicMetrics
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.services.knowledge_gap import TopicMetrics
 
 
 class GapPriority(str, Enum):
@@ -89,4 +92,20 @@ def rank_gap(metrics: TopicMetrics) -> GapRanking:
         severity=severity,
         missing_documentation=missing_documentation,
         priority_score=score,
+    )
+
+def build_knowledge_gap(
+    metrics: TopicMetrics,
+    ranking: GapRanking,
+) -> KnowledgeGap:
+    return KnowledgeGap(
+        topic=metrics.topic,
+        frequency=metrics.frequency,
+        average_retrieval_score=round(
+            metrics.average_retrieval_score,
+            4,
+        ),
+        priority=ranking.priority,
+        severity=ranking.severity,
+        missing_documentation=ranking.missing_documentation,
     )

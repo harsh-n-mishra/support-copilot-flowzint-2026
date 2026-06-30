@@ -2,6 +2,10 @@ from pydantic import BaseModel, Field
 
 from app.services.confidence import ConfidenceLevel
 from app.services.verification import VerificationStatus
+from app.services.gap_ranking import (
+    GapPriority,
+    GapSeverity,
+)
 
 
 class ChatRequest(BaseModel):
@@ -87,7 +91,9 @@ class KnowledgeGapResponse(BaseModel):
     topic: str
     frequency: int
     average_retrieval_score: float
-    priority: ConfidenceLevel
+    priority: GapPriority
+    severity: GapSeverity
+    missing_documentation: bool
 
 
 class SupportHealthResponse(BaseModel):
