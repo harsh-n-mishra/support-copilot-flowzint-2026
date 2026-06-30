@@ -18,7 +18,11 @@ from app.services.confidence import (
     ConfidenceLevel,
     calculate_confidence,
 )
-from app.services.verification import VerificationStatus
+from app.services.verification import (
+    VerificationResult,
+    VerificationStatus,
+    verify_answer,
+)
 
 PROMPT = ChatPromptTemplate.from_messages(
     [
@@ -54,9 +58,7 @@ class RagResult:
 
     answered: bool
 
-    verification_status: VerificationStatus
-
-    retrieved_chunk_count: int
+    verification: VerificationResult
 
     response_time_ms: int
 
@@ -177,9 +179,11 @@ def _needs_handoff(answer: str, top_score: float) -> bool:
     return top_score < settings.min_relevance_score or unsure
 
 
-def _determine_answered( handoff_reason: str | None, ) -> bool:
-    return handoff_reason is None
-
+def _determine_answered(handoff_reason: str | None, verification: VerificationResult,) -> bool:
+    return (
+        handoff_reason is None
+        and verification.status != VerificationStatus.LOW_EVIDENCE
+    )
 
 def _recommend_escalation(intent: str, top_score: float, handoff: bool) -> str:
     if handoff:
@@ -246,8 +250,7 @@ def _apply_workflow(
     session_id: str,
     confidence: ConfidenceLevel,
     answered: bool,
-    verification_status: VerificationStatus,
-    retrieved_chunk_count: int,
+    verification: VerificationResult,
     response_time_ms: int,
 ) -> RagResult:
     handoff = _create_handoff(handoff_reason) if handoff_reason else None
@@ -299,8 +302,7 @@ def _apply_workflow(
         retrieval_score=top_score,
         confidence=confidence,
         answered=answered,
-        verification_status=verification_status,
-        retrieved_chunk_count=retrieved_chunk_count,
+        verification=verification,
         response_time_ms=response_time_ms,
         escalation_target=escalation_target,
         debug=debug,
@@ -328,11 +330,17 @@ def ask_support_question(question: str, session_id: str) -> RagResult:
 
         confidence = ConfidenceLevel.LOW
 
-        verification_status = VerificationStatus.UNKNOWN
+        verification = verify_answer(
+            confidence=ConfidenceLevel.LOW,
+            evidence_count=0,
+        )
 
         handoff_reason = "No relevant documentation found for this request."
 
-        answered = _determine_answered(handoff_reason)
+        answered = _determine_answered(
+            handoff_reason, 
+            verification,
+        )
 
         return _apply_workflow(
             question=question,
@@ -346,14 +354,12 @@ def ask_support_question(question: str, session_id: str) -> RagResult:
             session_id=session_id,
             confidence=confidence,
             answered=answered,
-            verification_status=verification_status,
-            retrieved_chunk_count=retrieved_chunk_count,
+            verification=verification,
             response_time_ms=response_time_ms,
         )
 
     top_score = max(score for _, score in results)
     confidence = calculate_confidence(top_score)
-    verification_status = VerificationStatus.UNKNOWN
     docs = [doc for doc, _ in results]
     context = "\n\n".join(doc.page_content for doc in docs)
     history = _build_history_text(session_id)
@@ -376,6 +382,10 @@ def ask_support_question(question: str, session_id: str) -> RagResult:
     )
 
     answer = str(response.content)
+    verification = verify_answer(
+        confidence=confidence,
+        evidence_count=retrieved_chunk_count,
+    )
     sources, debug_chunks = _build_chunk_views(results)
     prompt_context_preview = _build_context_preview(context)
 
@@ -385,7 +395,10 @@ def ask_support_question(question: str, session_id: str) -> RagResult:
         else None
     )
 
-    answered = _determine_answered(handoff_reason)
+    answered = _determine_answered(
+        handoff_reason,
+        verification,
+    )
 
     response_time_ms = round((perf_counter() - start_time) * 1000)
 
@@ -401,8 +414,7 @@ def ask_support_question(question: str, session_id: str) -> RagResult:
         session_id=session_id,
         confidence=confidence,
         answered=answered,
-        verification_status=verification_status,
-        retrieved_chunk_count=retrieved_chunk_count,
+        verification=verification,
         response_time_ms=response_time_ms,
     )
 

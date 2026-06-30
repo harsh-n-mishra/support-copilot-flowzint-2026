@@ -22,6 +22,7 @@ from app.schemas import (
     KnowledgeGapResponse,
     SourceChunk,
     SupportHealthResponse,
+    VerificationResponse,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -93,8 +94,8 @@ def chat(payload: ChatRequest) -> ChatResponse:
             retrieval_score=result.retrieval_score,
             confidence=result.confidence,
             answered=result.answered,
-            verification_status=result.verification_status,
-            retrieved_chunk_count=result.retrieved_chunk_count,
+            verification_status=result.verification.status,
+            retrieved_chunk_count=result.verification.evidence_count,
             response_time_ms=result.response_time_ms,
             handoff_triggered=result.handoff is not None,
             escalation_target=result.escalation_target,
@@ -116,6 +117,11 @@ def chat(payload: ChatRequest) -> ChatResponse:
         debug=result.debug,
         handoff=result.handoff,
         ticket_draft=result.ticket_draft,
+        verification=VerificationResponse(
+            status=result.verification.status,
+            reason=result.verification.reason,
+            evidence_count=result.verification.evidence_count,
+        ),
     )
 
 
